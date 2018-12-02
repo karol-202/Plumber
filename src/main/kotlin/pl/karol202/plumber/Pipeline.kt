@@ -1,44 +1,23 @@
 package pl.karol202.plumber
 
-interface Pipeline<I, O>
+abstract class Pipeline<I, O> internal constructor(anyElement: PipelineElement<*, *, I, O>)
 {
-	fun transformForward(input: I): O
+	private val firstElement = anyElement.firstElement
+	private val lastElement = anyElement.lastElement
 
-	fun transformBackward(input: O): I
+	fun transformForward(input: I) = firstElement.transformForward(input)
+
+	fun transformBackward(input: O) = lastElement.transformBackward(input)
 }
 
-class OpenPipeline<I, O>(private val firstElement: PipelineElement<I, *, I, O>,
-                         private val lastElement: PipelineElement<*, O, I, O>) :
-		Pipeline<I, O>
-{
-	override fun transformForward(input: I) = firstElement.transformForward(input)
+class OpenPipeline<I, O> internal constructor(anyElement: PipelineElement<*, *, I, O>) :
+		Pipeline<I, O>(anyElement)
 
-	override fun transformBackward(input: O) = lastElement.transformBackward(input)
-}
+class LeftClosedPipeline<O> internal constructor(anyElement: PipelineElement<*, *, Unit, O>) :
+		Pipeline<Unit, O>(anyElement)
 
-class LeftClosedPipeline<O>(private val firstElement: FirstPipelineElement<*, O>,
-                            private val lastElement: PipelineElement<*, O, Unit, O>) :
-		Pipeline<Unit, O>
-{
-	override fun transformForward(input: Unit) = firstElement.transformForward(input)
+class RightClosedPipeline<I> internal constructor(anyElement: PipelineElement<*, *, I, Unit>) :
+		Pipeline<I, Unit>(anyElement)
 
-	override fun transformBackward(input: O) = lastElement.transformBackward(input)
-}
-
-class RightClosedPipeline<I>(private val firstElement: PipelineElement<I, *, I, Unit>,
-                             private val lastElement: LastPipelineElement<*, I>) :
-		Pipeline<I, Unit>
-{
-	override fun transformForward(input: I) = firstElement.transformForward(input)
-
-	override fun transformBackward(input: Unit) = lastElement.transformBackward(input)
-}
-
-class ClosedPipeline(private val firstElement: FirstPipelineElement<*, Unit>,
-                     private val lastElement: LastPipelineElement<*, Unit>) :
-		Pipeline<Unit, Unit>
-{
-	override fun transformForward(input: Unit) = firstElement.transformForward(input)
-
-	override fun transformBackward(input: Unit) = lastElement.transformBackward(input)
-}
+class ClosedPipeline internal constructor(anyElement: PipelineElement<*, *, Unit, Unit>) :
+		Pipeline<Unit, Unit>(anyElement)
