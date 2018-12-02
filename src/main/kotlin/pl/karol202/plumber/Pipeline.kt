@@ -1,49 +1,44 @@
 package pl.karol202.plumber
 
-abstract class Pipeline<I, O>(val firstLayer: FirstLayer<*>?,
-							  val middleLayers: List<MiddleLayer<*, *>>,
-							  val lastLayer: LastLayer<*>?)
+interface Pipeline<I, O>
 {
-	companion object
-	{
-		fun create(firstLayer: FirstLayer<*>?, middleLayers: List<MiddleLayer<*, *>>, lastLayer: LastLayer<*>?) =
-				if(firstLayer == null && lastLayer == null) OpenPipeline(middleLayers)
-	}
+	fun transformForward(input: I): O
 
-	init
-	{
-		TODO("check integrity")
-	}
+	fun transformBackward(input: O): I
 }
 
-class OpenPipeline<I, O>(middleLayers: List<MiddleLayer<*, *>>) :
-		Pipeline<I, O>(null, middleLayers, null),
-	LeftExpandablePipelinePart<I>,
-	RightExpandablePipelinePart<O>
+class OpenPipeline<I, O>(private val firstElement: PipelineElement<I, *, I, O>,
+                         private val lastElement: PipelineElement<*, O, I, O>) :
+		Pipeline<I, O>
 {
-	override fun <I> plus(nextPart: LeftExpandablePipelinePart<I>): Pipeline<*, *>
-	{
-		TODO("not implemented")
-	}
+	override fun transformForward(input: I) = firstElement.transformForward(input)
+
+	override fun transformBackward(input: O) = lastElement.transformBackward(input)
 }
 
-class LeftClosedPipeline<O>(firstLayer: FirstLayer<*>,
-                            middleLayers: List<MiddleLayer<*, *>>) :
-		Pipeline<Unit, O>(firstLayer, middleLayers, null),
-		RightExpandablePipelinePart<O>
+class LeftClosedPipeline<O>(private val firstElement: FirstPipelineElement<*, O>,
+                            private val lastElement: PipelineElement<*, O, Unit, O>) :
+		Pipeline<Unit, O>
 {
-	override fun <I> plus(nextPart: LeftExpandablePipelinePart<I>): Pipeline<*, *>
-	{
-		TODO("not implemented")
-	}
+	override fun transformForward(input: Unit) = firstElement.transformForward(input)
+
+	override fun transformBackward(input: O) = lastElement.transformBackward(input)
 }
 
-class RightClosedPipeline<I>(middleLayers: List<MiddleLayer<*, *>>,
-                             lastLayer: LastLayer<*>) :
-		Pipeline<I, Unit>(null, middleLayers, lastLayer),
-		LeftExpandablePipelinePart<I>
+class RightClosedPipeline<I>(private val firstElement: PipelineElement<I, *, I, Unit>,
+                             private val lastElement: LastPipelineElement<*, I>) :
+		Pipeline<I, Unit>
+{
+	override fun transformForward(input: I) = firstElement.transformForward(input)
 
-class ClosedPipeline(firstLayer: FirstLayer<*>,
-                     middleLayers: List<MiddleLayer<*, *>>,
-                     lastLayer: LastLayer<*>) :
-		Pipeline<Unit, Unit>(firstLayer, middleLayers, lastLayer)
+	override fun transformBackward(input: Unit) = lastElement.transformBackward(input)
+}
+
+class ClosedPipeline(private val firstElement: FirstPipelineElement<*, Unit>,
+                     private val lastElement: LastPipelineElement<*, Unit>) :
+		Pipeline<Unit, Unit>
+{
+	override fun transformForward(input: Unit) = firstElement.transformForward(input)
+
+	override fun transformBackward(input: Unit) = lastElement.transformBackward(input)
+}

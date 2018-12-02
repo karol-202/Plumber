@@ -7,7 +7,7 @@ interface Layer<I, O>
 	fun transformBackward(input: O): I
 }
 
-interface FirstLayer<O> : Layer<Unit, O>, RightExpandablePipelinePart<O>
+interface FirstLayer<O> : Layer<Unit, O>/*, RightExpandablePipelinePart<O>
 {
 	override val firstLayer: FirstLayer<*>?
 		get() = this
@@ -19,9 +19,9 @@ interface FirstLayer<O> : Layer<Unit, O>, RightExpandablePipelinePart<O>
 				if(it != null) ClosedPipeline(this, middleLayers + nextPart.middleLayers, it)
 				else LeftClosedPipeline<>(this, middleLayers + nextPart.middleLayers)
 			}
-}
+}*/
 
-interface MiddleLayer<I, O> : Layer<I, O>, LeftExpandablePipelinePart<I>, RightExpandablePipelinePart<O>
+interface MiddleLayer<I, O> : Layer<I, O>/*, LeftExpandablePipelinePart<I>, RightExpandablePipelinePart<O>
 {
 	override val firstLayer: FirstLayer<*>?
 		get() = null
@@ -34,12 +34,12 @@ interface MiddleLayer<I, O> : Layer<I, O>, LeftExpandablePipelinePart<I>, RightE
 	{
 		TODO("not implemented")
 	}
-}
+}*/
 
-interface LastLayer<I> : Layer<I, Unit>, LeftExpandablePipelinePart<I>
+interface LastLayer<I> : Layer<I, Unit>/*, LeftExpandablePipelinePart<I>
 {
 	override val middleLayers: List<MiddleLayer<*, *>>
 		get() = listOf()
 	override val lastLayer: LastLayer<*>?
 		get() = this
-}
+}*/

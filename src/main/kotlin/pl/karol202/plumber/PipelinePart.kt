@@ -1,6 +1,6 @@
 package pl.karol202.plumber
 
-interface RightExpandablePipelinePart<O>
+/*interface RightExpandablePipelinePart<O>
 {
     val firstLayer: FirstLayer<*>?
 	val middleLayers: List<MiddleLayer<*, *>>
@@ -12,4 +12,4 @@ interface LeftExpandablePipelinePart<I>
 {
 	val middleLayers: List<MiddleLayer<*, *>>
 	val lastLayer: LastLayer<*>?
-}
+}*/
