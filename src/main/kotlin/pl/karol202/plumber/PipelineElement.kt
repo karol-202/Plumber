@@ -1,8 +1,8 @@
 package pl.karol202.plumber
 
 interface PipelineElement<I, O, PI, PO,
-			FE : PipelineElement<PI, *, PI, PO, FE, LE>,
-			LE : PipelineElement<*, PO, PI, PO, FE, LE>>
+						   FE : PipelineElementWithSuccessor<PI, *, PI, PO, FE, LE, FE>,
+						   LE : PipelineElementWithPredecessor<*, PO, PI, PO, FE, LE, LE>>
 {
 	val firstElement: FE
 	val lastElement: LE
@@ -10,36 +10,47 @@ interface PipelineElement<I, O, PI, PO,
 	fun transformForward(input: I): PO
 
 	fun transformBackward(input: O): PI
-
-	fun copy(): PipelineElement<I, O, PI, PO, FE, LE>
 }
 
 interface PipelineElementWithPredecessor<I, O, PI, PO,
-			FE : PipelineElement<PI, *, PI, PO, FE, LE>,
-			LE : PipelineElement<*, PO, PI, PO, FE, LE>> :
+										  FE : PipelineElementWithSuccessor<PI, *, PI, PO, FE, LE, FE>,
+										  LE : PipelineElementWithPredecessor<*, PO, PI, PO, FE, LE, LE>,
+										  T : PipelineElementWithPredecessor<I, O, PI, PO, FE, LE, T>> :
 		PipelineElement<I, O, PI, PO, FE, LE>
 {
-	var previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>
+	var previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE, *>
 
-	override fun copy(): PipelineElementWithPredecessor<I, O, PI, PO, FE, LE>
+	fun <CPI,
+		 CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE, CFE>,
+		 CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE, CLE>,
+		 CT : PipelineElementWithPredecessor<I, O, CPI, PO, CFE, CLE, CT>>
+			copySelfWithNewPI(): PipelineElementWithPredecessor<I, O, CPI, PO, CFE, CLE, CT>?
 
-	fun <CPI, CFE : PipelineElement<CPI, *, CPI, PO, CFE, CLE>, CLE : PipelineElement<*, PO, CPI, PO, CFE, CLE>>
-			copyWithNewPI(): PipelineElementWithPredecessor<I, O, CPI, PO, CFE, CLE>
+	fun <CPO,
+		 CFE : PipelineElementWithSuccessor<PI, *, PI, CPO, CFE, CLE, CFE>,
+		 CLE : PipelineElementWithPredecessor<*, CPO, PI, CPO, CFE, CLE, CLE>,
+		 CT : PipelineElementWithPredecessor<I, *, PI, CPO, CFE, CLE, CT>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, CFE, CLE>):
+			PipelineElementWithPredecessor<I, *, PI, CPO, CFE, CLE>?
 }
 
 interface PipelineElementWithSuccessor<I, O, PI, PO,
-			FE : PipelineElement<PI, *, PI, PO, FE, LE>,
-			LE : PipelineElement<*, PO, PI, PO, FE, LE>> :
+										FE : PipelineElementWithSuccessor<PI, *, PI, PO, FE, LE, FE>,
+										LE : PipelineElementWithPredecessor<*, PO, PI, PO, FE, LE, LE>,
+										T : PipelineElementWithSuccessor<I, O, PI, PO, FE, LE, T>> :
 		PipelineElement<I, O, PI, PO, FE, LE>
 {
 	val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FE, LE>
 
-	fun <CPO, CFE : PipelineElement<PI, *, PI, CPO, CFE, CLE>, CLE : PipelineElement<*, CPO, PI, CPO, CFE, CLE>>
-			copyBackwardsWithNewPO(nextElement: PipelineElementWithPredecessor<O, *, PI, CPO, CFE, CLE>):
-			PipelineElementWithSuccessor<I, O, PI, CPO, CFE, CLE>
+	fun <CPI,
+		 CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE>,
+		 CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
+			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>):
+			PipelineElementWithSuccessor<I, O, CPI, PO, CFE, CLE>?
 }
 
-class FirstPipelineElement<O, PO, LE : PipelineElement<*, PO, Unit, PO, FirstPipelineElement<O, PO, LE>, LE>>
+class FirstPipelineElement<O, PO,
+							LE : PipelineElementWithPredecessor<*, PO, Unit, PO, FirstPipelineElement<O, PO, LE>, LE>>
 		(private val layer: FirstLayer<O>,
 		 override val nextElement: PipelineElementWithPredecessor<O, *, Unit, PO, FirstPipelineElement<O, PO, LE>, LE>) :
 		PipelineElementWithSuccessor<Unit, O, Unit, PO, FirstPipelineElement<O, PO, LE>, LE>
@@ -58,21 +69,22 @@ class FirstPipelineElement<O, PO, LE : PipelineElement<*, PO, Unit, PO, FirstPip
 
 	override fun transformBackward(input: O) = layer.transformBackward(input)
 
-	override fun copy() = FirstPipelineElement(layer, nextElement.copy())
-
-	override fun <CPO, CFE : FirstPipelineElement<O, CPO, CLE>, CLE : PipelineElement<*, CPO, Unit, CPO, CFE, CLE>>
-			copyBackwardsWithNewPO(nextElement: PipelineElementWithPredecessor<O, *, Unit, CPO, CFE, CLE>):
-			FirstPipelineElement<O, CPO, CLE> =
-			FirstPipelineElement(layer, nextElement)
+	override fun <CPI,
+				  CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
+			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>): Nothing? = null
 }
 
-class MiddlePipelineElement<I, O, PI, PO>(private val layer: MiddleLayer<I, O>,
-                                          override val nextElement: PipelineElementWithPredecessor<O, *, PI, PO>) :
-		PipelineElementWithPredecessor<I, O, PI, PO>,
-		PipelineElementWithSuccessor<I, O, PI, PO>
+class MiddlePipelineElement<I, O, PI, PO,
+							 FE : PipelineElementWithSuccessor<PI, *, PI, PO, FE, LE>,
+							 LE : PipelineElementWithPredecessor<*, PO, PI, PO, FE, LE>>
+		(private val layer: MiddleLayer<I, O>,
+		 override val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FE, LE>) :
+		PipelineElementWithPredecessor<I, O, PI, PO, FE, LE>,
+		PipelineElementWithSuccessor<I, O, PI, PO, FE, LE>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, PO>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, I, PI, PO>
+	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>? = null
+	override var previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>
 		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
 		set(value)
 		{
@@ -80,9 +92,9 @@ class MiddlePipelineElement<I, O, PI, PO>(private val layer: MiddleLayer<I, O>,
 			_previousElement = value
 		}
 
-	override val firstElement: PipelineElement<PI, *, PI, PO>
+	override val firstElement: FE
 		get() = previousElement.firstElement
-	override val lastElement: PipelineElement<*, PO, PI, PO>
+	override val lastElement: LE
 		get() = nextElement.lastElement
 
 	init
@@ -94,19 +106,35 @@ class MiddlePipelineElement<I, O, PI, PO>(private val layer: MiddleLayer<I, O>,
 
 	override fun transformBackward(input: O) = previousElement.transformBackward(layer.transformBackward(input))
 
-	override fun copy() = MiddlePipelineElement(layer, nextElement.copy())
+	override fun <CPI,
+				  CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
+			copySelfWithNewPI(): Nothing? = null
 
-	override fun <CPI> copyWithNewPI() = MiddlePipelineElement(layer, nextElement.copyWithNewPI<CPI>())
+	override fun <CPI,
+				  CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
+			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>) =
+			MiddlePipelineElement(layer, nextElement).also { previousElement.copyBackwardsWithNewPI(it) }
 
-	override fun <CPO> copyBackwardsWithNewPO(nextElement: PipelineElementWithPredecessor<O, *, PI, CPO>) =
-		MiddlePipelineElement(layer, nextElement).also { previousElement.copyBackwardsWithNewPO(it) }
+	override fun <CPO,
+				  CFE : PipelineElementWithSuccessor<PI, *, PI, CPO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, CPO, PI, CPO, CFE, CLE>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, CFE, CLE>):
+			MiddlePipelineElement<I, O, PI, CPO, CFE, CLE>?
+	{
+		val next = nextElement.copyWithNewPO(elementToInsertAtEnd) ?: return null
+		return MiddlePipelineElement(layer, next)
+	}
 }
 
-class LastPipelineElement<I, PI>(private val layer: LastLayer<I>) :
-		PipelineElementWithPredecessor<I, Unit, PI, Unit>
+class LastPipelineElement<I, PI,
+						   FE : PipelineElementWithSuccessor<PI, *, PI, Unit, FE, LastPipelineElement<I, PI, FE>>>
+		(private val layer: LastLayer<I>) :
+		PipelineElementWithPredecessor<I, Unit, PI, Unit, FE, LastPipelineElement<I, PI, FE>>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, Unit>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, I, PI, Unit>
+	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, Unit, FE, LastPipelineElement<I, PI, FE>>? = null
+	override var previousElement: PipelineElementWithSuccessor<*, I, PI, Unit, FE, LastPipelineElement<I, PI, FE>>
 		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
 		set(value)
 		{
@@ -114,26 +142,35 @@ class LastPipelineElement<I, PI>(private val layer: LastLayer<I>) :
 			_previousElement = value
 		}
 
-	override val firstElement: PipelineElement<PI, *, PI, Unit>
+	override val firstElement: FE
 		get() = previousElement.firstElement
-	override val lastElement: PipelineElement<*, Unit, PI, Unit>
+	override val lastElement: LastPipelineElement<I, PI, FE>
 		get() = this
 
 	override fun transformForward(input: I) = layer.transformForward(input)
 
 	override fun transformBackward(input: Unit) = previousElement.transformBackward(layer.transformBackward(input))
 
-	override fun copy() = LastPipelineElement<I, PI>(layer)
+	override fun <CPI,
+				  CFE : PipelineElementWithSuccessor<CPI, *, CPI, Unit, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, Unit, CPI, Unit, CFE, CLE>>
+			copySelfWithNewPI(): PipelineElementWithPredecessor<I, Unit, CPI, Unit, CFE, CLE> =
+			LastPipelineElement<I, CPI, CFE>(layer)
 
-	override fun <CPI> copyWithNewPI() = LastPipelineElement<I, CPI>(layer)
+	override fun <CPO,
+				  CFE : PipelineElementWithSuccessor<PI, *, PI, CPO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, CPO, PI, CPO, CFE, CLE>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<Unit, *, PI, CPO, CFE, CLE>): Nothing? = null
 }
 
-class StartPipelineTerminator<PI, PO>(override val nextElement: PipelineElementWithPredecessor<PI, *, PI, PO>) :
-		PipelineElementWithSuccessor<PI, PI, PI, PO>
+class StartPipelineTerminator<PI, PO,
+							   LE : PipelineElementWithPredecessor<*, PO, PI, PO, StartPipelineTerminator<PI, PO, LE>, LE>>
+		(override val nextElement: PipelineElementWithPredecessor<PI, *, PI, PO, StartPipelineTerminator<PI, PO, LE>, LE>) :
+		PipelineElementWithSuccessor<PI, PI, PI, PO, StartPipelineTerminator<PI, PO, LE>, LE>
 {
-	override val firstElement: PipelineElement<PI, *, PI, PO>
+	override val firstElement: StartPipelineTerminator<PI, PO, LE>
 		get() = this
-	override val lastElement: PipelineElement<*, PO, PI, PO>
+	override val lastElement: LE
 		get() = nextElement.lastElement
 
 	init
@@ -145,25 +182,30 @@ class StartPipelineTerminator<PI, PO>(override val nextElement: PipelineElementW
 
 	override fun transformBackward(input: PI) = input
 
-	override fun copy() = StartPipelineTerminator(nextElement.copy())
+	override fun <CPI,
+				  CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
+			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<PI, *, CPI, PO, CFE, CLE>): Nothing? = null
 
-	override fun <CPO> copyBackwardsWithNewPO(nextElement: PipelineElementWithPredecessor<PI, *, PI, CPO>) =
-			StartPipelineTerminator(nextElement)
-
-	fun <CPI> insertAtBeginningAndReturnBeginning(endPipelineTerminator: EndPipelineTerminator<CPI, PI>):
-			PipelineElement<CPI, *, CPI, PO>
+	fun <CPI,
+		 OFE : PipelineElementWithSuccessor<CPI, *, CPI, PI, OFE, EndPipelineTerminator<CPI, PI, OFE>>,
+		 CFE : PipelineElementWithSuccessor<CPI, *, CPI, PO, CFE, CLE>,
+		 CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
+			insertAtBeginningAndReturnBeginning(endPipelineTerminator: EndPipelineTerminator<CPI, PI, OFE>):
+			PipelineElement<CPI, *, CPI, PO, CFE, CLE>
 	{
-		val newNext = nextElement.copyWithNewPI<CPI>()
+		val newNext = lastElement.
 		val newPrevious = endPipelineTerminator.previousElement.copyBackwardsWithNewPO(newNext)
 		return newPrevious.firstElement
 	}
 }
 
-class EndPipelineTerminator<PI, PO> :
-		PipelineElementWithPredecessor<PO, PO, PI, PO>
+class EndPipelineTerminator<PI, PO,
+							 FE : PipelineElementWithSuccessor<PI, *, PI, PO, FE, EndPipelineTerminator<PI, PO, FE>>> :
+		PipelineElementWithPredecessor<PO, PO, PI, PO, FE, EndPipelineTerminator<PI, PO, FE>>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, PO, PI, PO>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, PO, PI, PO>
+	private var _previousElement: PipelineElementWithSuccessor<*, PO, PI, PO, FE, EndPipelineTerminator<PI, PO, FE>>? = null
+	override var previousElement: PipelineElementWithSuccessor<*, PO, PI, PO, FE, EndPipelineTerminator<PI, PO, FE>>
 		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
 		set(value)
 		{
@@ -171,18 +213,19 @@ class EndPipelineTerminator<PI, PO> :
 			_previousElement = value
 		}
 
-	override val firstElement: PipelineElement<PI, *, PI, PO>
+	override val firstElement: FE
 		get() = previousElement.firstElement
-	override val lastElement: PipelineElement<*, PO, PI, PO>
+	override val lastElement: EndPipelineTerminator<PI, PO, FE>
 		get() = this
 
 	override fun transformForward(input: PO) = input
 
 	override fun transformBackward(input: PO) = previousElement.transformBackward(input)
 
-	override fun copy() = EndPipelineTerminator<PI, PO>()
-
-	override fun <CPI> copyWithNewPI() = EndPipelineTerminator<CPI, PO>()
+	override fun <CPO,
+				  CFE : PipelineElementWithSuccessor<PI, *, PI, CPO, CFE, CLE>,
+				  CLE : PipelineElementWithPredecessor<*, CPO, PI, CPO, CFE, CLE>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, CFE, CLE>) = elementToInsertAtEnd
 
 	fun <CPO> insertAtEndAndReturnBeginning(startPipelineTerminator: StartPipelineTerminator<PO, CPO>):
 			PipelineElement<PI, *, PI, CPO>
