@@ -29,7 +29,7 @@ class OpenPipeline<I, O> internal constructor(override val firstElement: StartPi
 			lastElement.insertAtEndAndReturnBeginning(next.firstElement)
 }
 
-class LeftClosedPipeline<O> internal constructor(override val firstElement: FirstPipelineElement<*, O>,
+class LeftClosedPipeline<O> internal constructor(override val firstElement: StartPipelineElement<*, O>,
                                                  override val lastElement: EndPipelineTerminator<Unit, O>) :
 		Pipeline<Unit, O>(),
 {
@@ -38,27 +38,27 @@ class LeftClosedPipeline<O> internal constructor(override val firstElement: Firs
 		fun <O> fromLayer(layer: FirstLayer<O>): LeftClosedPipeline<O>
 		{
 			val endTerminator = EndPipelineTerminator<Unit, O>()
-			val firstElement = FirstPipelineElement(layer, endTerminator)
+			val firstElement = StartPipelineElement(layer, endTerminator)
 			return LeftClosedPipeline(firstElement, endTerminator)
 		}
 	}
 }
 
 class RightClosedPipeline<I> internal constructor(override val firstElement: StartPipelineTerminator<I, Unit>,
-                                                  override val lastElement: LastPipelineElement<*, I>) :
+                                                  override val lastElement: EndPipelineElement<*, I>) :
 		Pipeline<I, Unit>(),
 {
 	companion object
 	{
 		fun <I> fromLayer(layer: LastLayer<I>): RightClosedPipeline<I>
 		{
-			val lastElement = LastPipelineElement<I, I>(layer)
+			val lastElement = EndPipelineElement<I, I>(layer)
 			val startTerminator = StartPipelineTerminator(lastElement)
 			return RightClosedPipeline(startTerminator, lastElement)
 		}
 	}
 }
 
-class ClosedPipeline internal constructor(override val firstElement: FirstPipelineElement<*, Unit>,
-                                          override val lastElement: LastPipelineElement<*, Unit>) :
+class ClosedPipeline internal constructor(override val firstElement: StartPipelineElement<*, Unit>,
+                                          override val lastElement: EndPipelineElement<*, Unit>) :
 		Pipeline<Unit, Unit>()
