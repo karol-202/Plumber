@@ -17,7 +17,7 @@ interface PipelineElementWithPredecessor<I, O, PI, PO,
 										 out LE : LastPipelineElement<*, PI, PO, FE>> :
 		PipelineElement<I, O, PI, PO, FE, LE>
 {
-	var previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>
+	val previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>
 
 	fun <CPO,
 		 CFE : FirstPipelineElement<*, PI, CPO, CLE>,
@@ -36,7 +36,8 @@ interface PipelineElementWithSuccessor<I, O, PI, PO,
 	fun <CPI,
 		 CFE : FirstPipelineElement<*, CPI, PO, CLE>,
 		 CLE : LastPipelineElement<*, CPI, PO, CFE>>
-			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>):
+			copyBackwardsWithNewPI(elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, I, CPI, PO, CFE, CLE>,
+			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>):
 			PipelineElementWithSuccessor<I, O, CPI, PO, CFE, CLE>?
 }
 
@@ -64,58 +65,43 @@ class StartPipelineElement<O, PO,
 	override val lastElement: LE
 		get() = nextElement.lastElement
 
-	init
-	{
-		nextElement.previousElement = this
-	}
-
 	override fun transformForward(input: Unit) = nextElement.transformForward(layer.transformForward(input))
 
 	override fun transformBackward(input: O) = layer.transformBackward(input)
 
 	override fun <CPI,
-				  CFE : FirstPipelineElement<*, CPI, PO, CLE, CFE>,
-				  CLE : LastPipelineElement<*, CPI, PO, CFE, CLE>,
-				  CT : PipelineElementWithSuccessor<Unit, O, CPI, PO, CFE, CLE, CT>>
-			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE, *>): Nothing? = null
+				  CFE : FirstPipelineElement<*, CPI, PO, CLE>,
+				  CLE : LastPipelineElement<*, CPI, PO, CFE>>
+			copyBackwardsWithNewPI(elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, Unit, CPI, PO, CFE, CLE>,
+			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>): Nothing? = null
 }
 
 class MiddlePipelineElement<I, O, PI, PO,
-							FE : PipelineElementWithSuccessor<PI, *, PI, PO, FE, LE, FE>,
-							LE : PipelineElementWithPredecessor<*, PO, PI, PO, FE, LE, LE>>
+							out FE : FirstPipelineElement<*, PI, PO, LE>,
+							out LE : LastPipelineElement<*, PI, PO, FE>>
 		(private val layer: MiddleLayer<I, O>,
-		 override val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FE, LE, *>) :
-		PipelineElementWithPredecessor<I, O, PI, PO, FE, LE, MiddlePipelineElement<I, O, PI, PO, FE, LE>>,
-		PipelineElementWithSuccessor<I, O, PI, PO, FE, LE, MiddlePipelineElement<I, O, PI, PO, FE, LE>>
+		 previousElementSupplier: (MiddlePipelineElement<I, O, PI, PO, FE, LE>) -> PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>,
+		 override val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FE, LE>) :
+		PipelineElementWithPredecessor<I, O, PI, PO, FE, LE>,
+		PipelineElementWithSuccessor<I, O, PI, PO, FE, LE>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE, *>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE, *>
-		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
-		set(value)
-		{
-			if(_previousElement != null) throw IllegalStateException("Previous element already assigned.")
-			_previousElement = value
-		}
+	override val previousElement = previousElementSupplier(this)
 
 	override val firstElement: FE
 		get() = previousElement.firstElement
 	override val lastElement: LE
 		get() = nextElement.lastElement
 
-	init
-	{
-		nextElement.previousElement = this
-	}
-
 	override fun transformForward(input: I) = nextElement.transformForward(layer.transformForward(input))
 
 	override fun transformBackward(input: O) = previousElement.transformBackward(layer.transformBackward(input))
 
 	override fun <CPI,
-				  CFE : FirstPipelineElement<CPI, *, CPI, PO, CFE, CLE>,
-				  CLE : PipelineElementWithPredecessor<*, PO, CPI, PO, CFE, CLE>>
-			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>) =
-			MiddlePipelineElement(layer, nextElement).also { previousElement.copyBackwardsWithNewPI(it) }
+				  CFE : FirstPipelineElement<*, CPI, PO, CLE>,
+				  CLE : LastPipelineElement<*, CPI, PO, CFE>>
+			copyBackwardsWithNewPI(elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, I, CPI, PO, CFE, CLE>,
+			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>) =
+			MiddlePipelineElement(layer, { previousElement.copyBackwardsWithNewPI<CPI, CFE, CLE>(null, it) ?: elementToInsertAtStartSupplier() }, nextElement)
 
 	override fun <CPO,
 				  CFE : PipelineElementWithSuccessor<PI, *, PI, CPO, CFE, CLE>,
@@ -127,6 +113,14 @@ class MiddlePipelineElement<I, O, PI, PO,
 		return MiddlePipelineElement(layer, next)
 	}
 }
+
+/*fun <I, O, CPI, PO,
+		CFE : FirstPipelineElement<*, CPI, PO, CLE>,
+		CLE : LastPipelineElement<*, CPI, PO, CFE>>
+		copyBackwardsWithNewPI(element: MiddlePipelineElement<>
+		elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, I, CPI, PO, CFE, CLE>,
+		                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>) =
+		MiddlePipelineElement(layer, { previousElement.copyBackwardsWithNewPI<CPI, CFE, CLE>(null, it) ?: elementToInsertAtStartSupplier() }, nextElement)*/
 
 class EndPipelineElement<I, PI,
 						 out FE : FirstPipelineElement<*, PI, Unit, LastPipelineElement<I, PI, Unit, FE>>>
@@ -151,8 +145,8 @@ class EndPipelineElement<I, PI,
 
 	override fun transformBackward(input: Unit) = previousElement.transformBackward(layer.transformBackward(input))
 
-	override fun <CPI, CFE : FirstPipelineElement<*, CPI, Unit, LastPipelineElement<I, CPI, Unit, CFE>>> copySelfWithNewPI(): LastPipelineElement<I, CPI, Unit, CFE>? =
-			EndPipelineElement(layer)
+	override fun <CPI, CFE : FirstPipelineElement<*, CPI, Unit, LastPipelineElement<I, CPI, Unit, CFE>>>
+			copySelfWithNewPI(): LastPipelineElement<I, CPI, Unit, CFE> = EndPipelineElement(layer)
 
 	override fun <CPO,
 				  CFE : PipelineElementWithSuccessor<PI, *, PI, CPO, CFE, CLE>,
