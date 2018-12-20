@@ -10,6 +10,19 @@ interface PipelineElement<I, O, PI, PO,
 	fun transformForward(input: I): PO
 
 	fun transformBackward(input: O): PI
+
+	fun <CPO,
+		 CFE : FirstPipelineElement<*, PI, CPO, CLE>,
+		 CLE : LastPipelineElement<*, PI, CPO, CFE>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, CFE, CLE>):
+			PipelineElementWithPredecessor<I, *, PI, CPO, CFE, CLE>
+
+	fun <CPI,
+		 CFE : FirstPipelineElement<*, CPI, PO, CLE>,
+		 CLE : LastPipelineElement<*, CPI, PO, CFE>>
+			copyBackwardsWithNewPI(elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, I, CPI, PO, CFE, CLE>,
+			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>):
+			PipelineElementWithSuccessor<I, O, CPI, PO, CFE, CLE>
 }
 
 interface PipelineElementWithPredecessor<I, O, PI, PO,
@@ -18,12 +31,6 @@ interface PipelineElementWithPredecessor<I, O, PI, PO,
 		PipelineElement<I, O, PI, PO, FE, LE>
 {
 	val previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FE, LE>
-
-	fun <CPO,
-		 CFE : FirstPipelineElement<*, PI, CPO, CLE>,
-		 CLE : LastPipelineElement<*, PI, CPO, CFE>>
-			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, CFE, CLE>):
-			PipelineElementWithPredecessor<I, *, PI, CPO, CFE, CLE>?
 }
 
 interface PipelineElementWithSuccessor<I, O, PI, PO,
@@ -32,13 +39,6 @@ interface PipelineElementWithSuccessor<I, O, PI, PO,
 		PipelineElement<I, O, PI, PO, FE, LE>
 {
 	val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FE, LE>
-
-	fun <CPI,
-		 CFE : FirstPipelineElement<*, CPI, PO, CLE>,
-		 CLE : LastPipelineElement<*, CPI, PO, CFE>>
-			copyBackwardsWithNewPI(elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, I, CPI, PO, CFE, CLE>,
-			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>):
-			PipelineElementWithSuccessor<I, O, CPI, PO, CFE, CLE>?
 }
 
 interface FirstPipelineElement<O, PI, PO,
@@ -48,11 +48,6 @@ interface FirstPipelineElement<O, PI, PO,
 interface LastPipelineElement<I, PI, PO,
 							  out FE : FirstPipelineElement<*, PI, PO, LastPipelineElement<I, PI, PO, FE>>> :
 		PipelineElementWithPredecessor<I, PO, PI, PO, FE, LastPipelineElement<I, PI, PO, FE>>
-{
-	fun <CPI,
-		 CFE : FirstPipelineElement<*, CPI, PO, LastPipelineElement<I, CPI, PO, CFE>>>
-			copySelfWithNewPI(): LastPipelineElement<I, CPI, PO, CFE>?
-}
 
 class StartPipelineElement<O, PO,
 						   out LE : LastPipelineElement<*, Unit, PO, StartPipelineElement<O, PO, LE>>>
@@ -69,11 +64,18 @@ class StartPipelineElement<O, PO,
 
 	override fun transformBackward(input: O) = layer.transformBackward(input)
 
+	override fun <CPO,
+				  CFE : FirstPipelineElement<*, Unit, CPO, CLE>,
+				  CLE : LastPipelineElement<*, Unit, CPO, CFE>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, Unit, CPO, CFE, CLE>) =
+			StartPipelineElement<O, CPO, CLE>(layer, nextElement.copyWithNewPO(elementToInsertAtEnd))
+
 	override fun <CPI,
 				  CFE : FirstPipelineElement<*, CPI, PO, CLE>,
 				  CLE : LastPipelineElement<*, CPI, PO, CFE>>
 			copyBackwardsWithNewPI(elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, Unit, CPI, PO, CFE, CLE>,
-			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>): Nothing? = null
+			                       nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFE, CLE>) =
+			throw PipelineException("Cannot change PI of StartPipelineElement.")
 }
 
 class MiddlePipelineElement<I, O, PI, PO,
