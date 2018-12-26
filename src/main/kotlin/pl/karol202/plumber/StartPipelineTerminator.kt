@@ -1,12 +1,11 @@
 package pl.karol202.plumber
 
-class StartPipelineTerminator<PI, PO,
-							  out LE : LastPipelineElement<LEI, PI, PO, FirstPipelineElement<PI, PI, PO, LE>>,
-							  LEI>
-		(override val nextElement: PipelineElementWithPredecessor<PI, *, PI, PO, FirstPipelineElement<PI, PI, PO, LE>, LE>) :
-		FirstPipelineElement<PI, PI, PO, LE>
+class StartPipelineTerminator<PI, PO, LEI,
+							  out LE : LastPipelineElement<LEI, PI, PO, PI, FirstPipelineElement<PI, PI, PO, LEI, LE>>>
+		(override val nextElement: PipelineElementWithPredecessor<PI, *, PI, PO, PI, LEI, FirstPipelineElement<PI, PI, PO, LEI, LE>, LE>) :
+		FirstPipelineElement<PI, PI, PO, LEI, LE>
 {
-	override val firstElement: StartPipelineTerminator<PI, PO, LE, LEI>
+	override val firstElement: StartPipelineTerminator<PI, PO, LEI, LE>
 		get() = this
 	override val lastElement: LE
 		get() = nextElement.lastElement
@@ -15,36 +14,37 @@ class StartPipelineTerminator<PI, PO,
 
 	override fun transformBackward(input: PI) = input
 
-	override fun <CPI,
-			CFE : FirstPipelineElement<*, CPI, PO, CLE>,
-			CLE : LastPipelineElement<*, CPI, PO, CFE>>
-			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<PI, *, CPI, PO, CFE, CLE>,
-			                       elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, PI, CPI, PO, CFE, CLE>) =
-			elementToInsertAtStartSupplier()
+	override fun <CPI, CFEO,
+				  CFE : FirstPipelineElement<CFEO, CPI, PO, LEI, CLE>,
+				  CLE : LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
+			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, CLE>,
+			                       elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, PI, CPI, PO, CFEO, LEI, CFE, CLE>) =
+		CopyingData(elementToInsertAtStartSupplier()) { nextElement }
 
-	override fun <CPO,
-				  CLE : LastPipelineElement<*, PI, CPO, FirstPipelineElement<PI, PI, CPO, CLE>>,
-				  IO>
-			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, IO, PI, CPO, FirstPipelineElement<PI, PI, CPO, CLE>, CLE>):
-			ForwardCopyingData<PI, PI, PI, CPO, FirstPipelineElement<PI, PI, CPO, CLE>, CLE, StartPipelineTerminator<PI, CPO, CLE, LEI>, PO>
+	override fun <CPO, CLEI,
+				  CLE : LastPipelineElement<CLEI, PI, CPO, PI, FirstPipelineElement<PI, PI, CPO, CLEI, CLE>>>
+			copyWithNewPO(elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, PI, CLEI, FirstPipelineElement<PI, PI, CPO, CLEI, CLE>, CLE>):
+			CopyingData<StartPipelineTerminator<PI, CPO, CLEI, CLE>,
+						PipelineElementWithSuccessor<*, PO, PI, CPO, PI, CLEI, FirstPipelineElement<PI, PI, CPO, CLEI, CLE>, CLE>>
 	{
-		var current: StartPipelineTerminator<PI, CPO, CLE>? = null
-		val next = nextElement.copyWithNewPO({ current ?: throw PipelineException("Not created yet.") }, elementToInsertAtEnd)
-		current = StartPipelineTerminator(next)
-		return current
+		var current: StartPipelineTerminator<PI, CPO, CLEI, CLE>? = null
+		val nextData = nextElement.copyWithNewPO({ current ?: throw PipelineException("Not created yet.") }, elementToInsertAtEnd)
+		current = StartPipelineTerminator(nextData.self)
+		return CopyingData(current, nextData.lastBeforeInserted)
 	}
 
-	fun <CPI,
-		 OFE : FirstPipelineElement<*, CPI, PI, EndPipelineTerminator<CPI, PI, OFE>>,
-		 CFE : FirstPipelineElement<*, CPI, PO, CLE>,
-		 CLE : LastPipelineElement<LEI, CPI, PO, CFE>>
-			insertAtBeginningAndReturnBeginning(endPipelineTerminator: EndPipelineTerminator<CPI, PI, OFE>):
-			FirstPipelineElement<*, CPI, PO, CLE>
+	fun <CPI, CFEO,
+		 OFE : FirstPipelineElement<CFEO, CPI, PI, PI, EndPipelineTerminator<CPI, PI, CFEO, OFE>>,
+		 CFE : FirstPipelineElement<CFEO, CPI, PO, LEI, LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
+		 /*CLE : LastPipelineElement<LEI, CPI, PO, CFEO, FirstPipelineElement<CFEO, CPI, PO, LEI, CLE>>*/>
+			insertAtBeginningAndReturnBeginning(endPipelineTerminator: EndPipelineTerminator<CPI, PI, CFEO, OFE>):
+			FirstPipelineElement<CFEO, CPI, PO, LEI, LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
 	{
-		var newLast: LastPipelineElement<LEI, CPI, PO, CFE>? = null
-		newLast = lastElement.copyBackwardsWithNewPI<CPI, CFE> {
-			endPipelineTerminator.firstElement.copyWithNewPO<PO, CLE, >(newLast ?: throw PipelineException("Not created yet.")).lastBeforeInserted()
+		var newLastData: CopyingData<LastPipelineElement<LEI, CPI, PO, CFEO, CFE>,
+									 PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>>? = null
+		newLastData = lastElement.copyBackwardsWithNewPI<CPI, CFEO, CFE> {
+			endPipelineTerminator.firstElement.copyWithNewPO(newLastData!!.lastBeforeInserted()).lastBeforeInserted()
 		}
-		return newLast.firstElement
+		return newLastData.self.firstElement
 	}
 }

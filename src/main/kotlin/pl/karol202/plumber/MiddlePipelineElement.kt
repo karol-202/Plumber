@@ -22,27 +22,31 @@ class MiddlePipelineElement<I, O, PI, PO, FEO, LEI,
 
 	override fun <CPI, CFEO,
 				  CFE : FirstPipelineElement<CFEO, CPI, PO, LEI, CLE>,
-				  CLE : LastPipelineElement<LEI, CPI, PO, CFEO, CFE>,
-				  II>
+				  CLE : LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
 			copyBackwardsWithNewPI(nextElement: PipelineElementWithPredecessor<O, *, CPI, PO, CFEO, LEI, CFE, CLE>,
-			                       elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<II, PI, CPI, PO, CFEO, LEI, CFE, CLE>):
-			BackwardCopyingData<I, O, CPI, PO, CFEO, LEI, CFE, CLE, MiddlePipelineElement<I, O, CPI, PO, CFEO, LEI, CFE, CLE>, PI>
+			                       elementToInsertAtStartSupplier: () -> PipelineElementWithSuccessor<*, PI, CPI, PO, CFEO, LEI, CFE, CLE>):
+			CopyingData<MiddlePipelineElement<I, O, CPI, PO, CFEO, LEI, CFE, CLE>,
+						PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, CLE>>
 	{
-		val current = MiddlePipelineElement(layer, { previousElement.copyBackwardsWithNewPI(it, elementToInsertAtStartSupplier) }, nextElement)
-		return BackwardCopyingData(current)
+		var previousData: CopyingData<PipelineElementWithSuccessor<*, I, CPI, PO, CFEO, LEI, CFE, CLE>,
+									  PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, CLE>>? = null
+		val current = MiddlePipelineElement<I, O, CPI, PO, CFEO, LEI, CFE, CLE>(layer, {
+			previousElement.copyBackwardsWithNewPI(it, elementToInsertAtStartSupplier).also { previousData = it }.self
+		}, nextElement)
+		return CopyingData(current) { previousData?.lastBeforeInserted?.invoke() ?: throw PipelineException("Not available.") }
 	}
 
 	override fun <CPO, CLEI,
 				  CFE : FirstPipelineElement<FEO, PI, CPO, CLEI, CLE>,
-				  CLE : LastPipelineElement<CLEI, PI, CPO, FEO, CFE>,
-				  IO>
+				  CLE : LastPipelineElement<CLEI, PI, CPO, FEO, CFE>>
 			copyWithNewPO(previousElementSupplier: () -> PipelineElementWithSuccessor<*, I, PI, CPO, FEO, CLEI, CFE, CLE>,
-			              elementToInsertAtEnd: PipelineElementWithPredecessor<PO, IO, PI, CPO, FEO, CLEI, CFE, CLE>):
-			ForwardCopyingData<I, O, PI, CPO, FEO, CLEI, CFE, CLE, MiddlePipelineElement<I, O, PI, CPO, FEO, CLEI, CFE, CLE>, PO>
+			              elementToInsertAtEnd: PipelineElementWithPredecessor<PO, *, PI, CPO, FEO, CLEI, CFE, CLE>):
+			CopyingData<MiddlePipelineElement<I, O, PI, CPO, FEO, CLEI, CFE, CLE>,
+						PipelineElementWithSuccessor<*, PO, PI, CPO, FEO, CLEI, CFE, CLE>>
 	{
 		var current: MiddlePipelineElement<I, O, PI, CPO, FEO, CLEI, CFE, CLE>? = null
 		val nextData = nextElement.copyWithNewPO({ current ?: throw PipelineException("Not created yet.") }, elementToInsertAtEnd)
 		current = MiddlePipelineElement(layer, { previousElementSupplier() }, nextData.self)
-		return ForwardCopyingData(current, nextData.lastBeforeInserted)
+		return CopyingData(current, nextData.lastBeforeInserted)
 	}
 }
