@@ -7,39 +7,25 @@ interface Layer<I, O>
 	fun transformBackward(input: O): I
 }
 
-interface FirstLayer<O> : Layer<Unit, O>/*, RightExpandablePipelinePart<O>
+interface FirstLayer<O> : Layer<Unit, O>
 {
-	override val firstLayer: FirstLayer<*>?
-		get() = this
-	override val middleLayers: List<MiddleLayer<*, *>>
-		get() = listOf()
+	fun toPipeline() = LeftClosedPipeline.fromLayer(this)
 
-	override fun <I> plus(nextPart: LeftExpandablePipelinePart<I>) =
-			nextPart.lastLayer.let {
-				if(it != null) ClosedPipeline(this, middleLayers + nextPart.middleLayers, it)
-				else LeftClosedPipeline<>(this, middleLayers + nextPart.middleLayers)
-			}
-}*/
+	operator fun <NO> plus(rightPipeline: OpenPipeline<O, NO>) = toPipeline() + rightPipeline
 
-interface MiddleLayer<I, O> : Layer<I, O>/*, LeftExpandablePipelinePart<I>, RightExpandablePipelinePart<O>
+	operator fun plus(rightPipeline: RightClosedPipeline<O>) = toPipeline() + rightPipeline
+}
+
+interface MiddleLayer<I, O> : Layer<I, O>
 {
-	override val firstLayer: FirstLayer<*>?
-		get() = null
-	override val middleLayers: List<MiddleLayer<*, *>>
-		get() = listOf(this)
-	override val lastLayer: LastLayer<*>?
-		get() = null
+	fun toPipeline() = OpenPipeline.fromLayer(this)
 
-	override fun <I> plus(nextPart: LeftExpandablePipelinePart<I>): Pipeline<*, *>
-	{
-		TODO("not implemented")
-	}
-}*/
+	operator fun <NO> plus(rightPipeline: OpenPipeline<O, NO>) = toPipeline() + rightPipeline
 
-interface LastLayer<I> : Layer<I, Unit>/*, LeftExpandablePipelinePart<I>
+	operator fun plus(rightPipeline: RightClosedPipeline<O>) = toPipeline() + rightPipeline
+}
+
+interface LastLayer<I> : Layer<I, Unit>
 {
-	override val middleLayers: List<MiddleLayer<*, *>>
-		get() = listOf()
-	override val lastLayer: LastLayer<*>?
-		get() = this
-}*/
+	fun toPipeline() = RightClosedPipeline.fromLayer(this)
+}
