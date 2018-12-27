@@ -2,23 +2,23 @@ package pl.karol202.plumber
 
 abstract class Pipeline<I, O>
 {
-	protected abstract val firstElement: PipelineElementWithSuccessor<I, *, I, O>
-	protected abstract val lastElement: PipelineElementWithPredecessor<*, O, I, O>
+	protected abstract val firstElement: FirstPipelineElement<*, I, O, *, *>
+	protected abstract val lastElement: LastPipelineElement<*, I, O, *, *>
 
 	fun transformForward(input: I) = firstElement.transformForward(input)
 
 	fun transformBackward(input: O) = lastElement.transformBackward(input)
 }
 
-class OpenPipeline<I, O> internal constructor(override val firstElement: StartPipelineTerminator<I, O>,
-                                              override val lastElement: EndPipelineTerminator<I, O>) :
+class OpenPipeline<I, O> internal constructor(override val firstElement: StartPipelineTerminator<I, O, *, *>,
+                                              override val lastElement: EndPipelineTerminator<I, O, *, *>) :
 		Pipeline<I, O>()
 {
 	companion object
 	{
 		fun <I, O> fromLayer(layer: MiddleLayer<I, O>): OpenPipeline<I, O>
 		{
-			val endTerminator = EndPipelineTerminator<I, O>()
+			val endTerminator = EndPipelineTerminator<I, O, I, >()
 			val element = MiddlePipelineElement(layer, endTerminator)
 			val startTerminator = StartPipelineTerminator(element)
 			return OpenPipeline(startTerminator, endTerminator)
@@ -31,7 +31,7 @@ class OpenPipeline<I, O> internal constructor(override val firstElement: StartPi
 
 class LeftClosedPipeline<O> internal constructor(override val firstElement: StartPipelineElement<*, O>,
                                                  override val lastElement: EndPipelineTerminator<Unit, O>) :
-		Pipeline<Unit, O>(),
+		Pipeline<Unit, O>()
 {
 	companion object
 	{
@@ -46,7 +46,7 @@ class LeftClosedPipeline<O> internal constructor(override val firstElement: Star
 
 class RightClosedPipeline<I> internal constructor(override val firstElement: StartPipelineTerminator<I, Unit>,
                                                   override val lastElement: EndPipelineElement<*, I>) :
-		Pipeline<I, Unit>(),
+		Pipeline<I, Unit>()
 {
 	companion object
 	{

@@ -34,17 +34,18 @@ class StartPipelineTerminator<PI, PO, LEI,
 	}
 
 	fun <CPI, CFEO,
-		 OFE : FirstPipelineElement<CFEO, CPI, PI, PI, EndPipelineTerminator<CPI, PI, CFEO, OFE>>,
-		 CFE : FirstPipelineElement<CFEO, CPI, PO, LEI, LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
-		 /*CLE : LastPipelineElement<LEI, CPI, PO, CFEO, FirstPipelineElement<CFEO, CPI, PO, LEI, CLE>>*/>
-			insertAtBeginningAndReturnBeginning(endPipelineTerminator: EndPipelineTerminator<CPI, PI, CFEO, OFE>):
-			FirstPipelineElement<CFEO, CPI, PO, LEI, LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
+		 		 OFE : FirstPipelineElement<CFEO, CPI, PI, PI, EndPipelineTerminator<CPI, PI, CFEO, OFE>>,
+				 CFE : FirstPipelineElement<CFEO, CPI, PO, LEI, CLE>,
+				 CLE : LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>
+			insertAtBeginningAndReturnBeginning(endPipelineTerminator: EndPipelineTerminator<CPI, PI, CFEO, OFE>): CFE
 	{
 		var newLastData: CopyingData<LastPipelineElement<LEI, CPI, PO, CFEO, CFE>,
-									 PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, LastPipelineElement<LEI, CPI, PO, CFEO, CFE>>>? = null
-		newLastData = lastElement.copyBackwardsWithNewPI<CPI, CFEO, CFE> {
-			endPipelineTerminator.firstElement.copyWithNewPO(newLastData!!.lastBeforeInserted()).lastBeforeInserted()
-		}
+				PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, CLE>>? = null
+		newLastData = lastElement.copyBackwardsWithNewPI {
+			val lastBeforeInserted = newLastData?.lastBeforeInserted?.invoke() ?: throw PipelineException("Not created yet.")
+			endPipelineTerminator.firstElement.copyWithNewPO(lastBeforeInserted).lastBeforeInserted()
+					as PipelineElementWithSuccessor<*, PI, CPI, PO, CFEO, LEI, CFE, CLE>
+		} as CopyingData<LastPipelineElement<LEI, CPI, PO, CFEO, CFE>, PipelineElementWithPredecessor<PI, *, CPI, PO, CFEO, LEI, CFE, CLE>>
 		return newLastData.self.firstElement
 	}
 }
