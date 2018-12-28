@@ -1,8 +1,7 @@
 package pl.karol202.plumber
 
-internal class LatePreviousElement<T> : LateVal<T>
-                                        (IllegalStateException("Element has no predecessor."),
-		                                 IllegalStateException("Previous element already assigned."))
+internal class LatePreviousElement<T> : LateVal<T>(IllegalStateException("Element has no predecessor."),
+												   IllegalStateException("Previous element already assigned."))
 
 internal interface PipelineElement<I, O, PI, PO, FEO, LEI>
 {

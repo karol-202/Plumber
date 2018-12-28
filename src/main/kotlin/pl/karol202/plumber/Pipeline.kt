@@ -1,6 +1,6 @@
 package pl.karol202.plumber
 
-abstract class Pipeline<I, O>
+sealed class Pipeline<I, O>
 {
 	internal abstract val firstElement: PipelineElementWithSuccessor<I, *, I, O, *, *>
 	internal abstract val lastElement: PipelineElementWithPredecessor<*, O, I, O, *, *>
