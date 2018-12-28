@@ -7,27 +7,33 @@ interface Layer<I, O>
 	fun transformBackward(input: O): I
 }
 
-interface FirstLayer<O> : Layer<Unit, O>, RightExpandablePipeline<Unit, O>
+interface FirstLayer<O> : Layer<Unit, O>
 {
-	override fun <PO> plus(next: LeftExpandablePipeline<O, PO>): Pipeline<Unit, PO>
-	{
+	fun toPipeline() = LeftClosedPipeline.fromLayer(this)
 
-	}
+	operator fun <NO> plus(rightPipeline: OpenPipeline<O, NO>) = toPipeline() + rightPipeline
 
-	override fun toPipeline() = LeftClosedPipeline.fromLayer(this)
+	operator fun <LEI> plus(rightPipeline: RightClosedPipeline<O, LEI>) = toPipeline() + rightPipeline
+
+	operator fun <NO> plus(rightLayer: MiddleLayer<O, NO>) = toPipeline() + rightLayer.toPipeline()
+
+	operator fun plus(rightLayer: LastLayer<O>) = toPipeline() + rightLayer.toPipeline()
 }
 
-interface MiddleLayer<I, O> : Layer<I, O>, LeftExpandablePipeline<I, O>, RightExpandablePipeline<I, O>
+interface MiddleLayer<I, O> : Layer<I, O>
 {
-	override fun <PO> plus(next: LeftExpandablePipeline<O, PO>): Pipeline<I, PO>
-	{
+	fun toPipeline() = OpenPipeline.fromLayer(this)
 
-	}
+	operator fun <NO> plus(rightPipeline: OpenPipeline<O, NO>) = toPipeline() + rightPipeline
 
-	override fun toPipeline() = OpenPipeline.fromLayer(this)
+	operator fun <LEI> plus(rightPipeline: RightClosedPipeline<O, LEI>) = toPipeline() + rightPipeline
+
+	operator fun <NO> plus(rightLayer: MiddleLayer<O, NO>) = toPipeline() + rightLayer.toPipeline()
+
+	operator fun plus(rightLayer: LastLayer<O>) = toPipeline() + rightLayer.toPipeline()
 }
 
-interface LastLayer<I> : Layer<I, Unit>, LeftExpandablePipeline<I, Unit>
+interface LastLayer<I> : Layer<I, Unit>
 {
-	override fun toPipeline() = RightClosedPipeline.fromLayer(this)
+	fun toPipeline() = RightClosedPipeline.fromLayer(this)
 }
