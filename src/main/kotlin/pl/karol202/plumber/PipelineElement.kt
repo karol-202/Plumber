@@ -1,5 +1,9 @@
 package pl.karol202.plumber
 
+internal class LatePreviousElement<T> : LateVal<T>
+                                        (IllegalStateException("Element has no predecessor."),
+		                                 IllegalStateException("Previous element already assigned."))
+
 internal interface PipelineElement<I, O, PI, PO, FEO, LEI>
 {
 	val firstElement: PipelineElement<PI, FEO, PI, PO, FEO, LEI>
@@ -52,14 +56,7 @@ internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: 
 		PipelineElementWithPredecessor<I, O, PI, PO, FEO, LEI>,
 		PipelineElementWithSuccessor<I, O, PI, PO, FEO, LEI>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FEO, LEI>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, I, PI, PO, FEO, LEI>
-		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
-		set(value)
-		{
-			if(_previousElement != null) throw IllegalStateException("Previous element already assigned.")
-			_previousElement = value
-		}
+	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, I, PI, PO, FEO, LEI>>()
 
 	override val firstElement: PipelineElement<PI, FEO, PI, PO, FEO, LEI>
 		get() = previousElement.firstElement
@@ -84,14 +81,7 @@ internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: 
 internal class LastPipelineElement<I, PI, FEO>(private val layer: LastLayer<I>) :
 		PipelineElementWithPredecessor<I, Unit, PI, Unit, FEO, I>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, I, PI, Unit, FEO, I>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, I, PI, Unit, FEO, I>
-		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
-		set(value)
-		{
-			if(_previousElement != null) throw IllegalStateException("Previous element already assigned.")
-			_previousElement = value
-		}
+	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, I, PI, Unit, FEO, I>>()
 
 	override val firstElement: PipelineElement<PI, FEO, PI, Unit, FEO, I>
 		get() = previousElement.firstElement
@@ -128,14 +118,7 @@ internal class StartPipelineTerminator<PI, PO, LEI>(override val nextElement: Pi
 
 internal class EndPipelineTerminator<PI, PO, FEO> : PipelineElementWithPredecessor<PO, PO, PI, PO, FEO, PO>
 {
-	private var _previousElement: PipelineElementWithSuccessor<*, PO, PI, PO, FEO, PO>? = null
-	override var previousElement: PipelineElementWithSuccessor<*, PO, PI, PO, FEO, PO>
-		get() = _previousElement ?: throw IllegalStateException("Element has no predecessor.")
-		set(value)
-		{
-			if(_previousElement != null) throw IllegalStateException("Previous element already assigned.")
-			_previousElement = value
-		}
+	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, PO, PI, PO, FEO, PO>>()
 
 	override val firstElement: PipelineElement<PI, FEO, PI, PO, FEO, PO>
 		get() = previousElement.firstElement
