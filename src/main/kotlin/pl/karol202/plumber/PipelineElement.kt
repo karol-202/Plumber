@@ -3,6 +3,14 @@ package pl.karol202.plumber
 internal class LatePreviousElement<T> : LateVal<T>(IllegalStateException("Element has no predecessor."),
 												   IllegalStateException("Previous element already assigned."))
 
+/*
+I - input of element
+O - output of element
+PI - input of pipeline
+PO - output of pipeline
+FEO - output of first element
+LEI - input of last element
+ */
 internal interface PipelineElement<I, O, PI, PO, FEO, LEI>
 {
 	val firstElement: PipelineElement<PI, FEO, PI, PO, FEO, LEI>
