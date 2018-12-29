@@ -16,3 +16,6 @@ open class LateVal<T>(val nullException: Exception,
 		variable = value
 	}
 }
+
+internal class LatePreviousElement<T> : LateVal<T>(PipelineException("Element has no predecessor."),
+												   PipelineException("Previous element already assigned."))
