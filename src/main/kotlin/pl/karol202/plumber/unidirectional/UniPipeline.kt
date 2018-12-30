@@ -1,6 +1,8 @@
 package pl.karol202.plumber.unidirectional
 
-import pl.karol202.plumber.PublicApi
+import pl.karol202.plumber.*
+import pl.karol202.plumber.bidirectional.TerminalBiLayer
+import pl.karol202.plumber.bidirectional.TransitiveBiLayer
 
 /**
  * UniPipeline is an ordered set of operations transforming data from input to output type.
@@ -11,8 +13,8 @@ import pl.karol202.plumber.PublicApi
  *
  * Every pipeline is either:
  * - OpenUniPipeline - has a MiddleLayers both on the start and on the end of the pipeline, or
- * - LeftClosedUniPipeline - has a FirstBiLayer on the start and a MiddleBiLayer on the end of the pipeline, or
- * - RightClosedUniPipeline - has a MiddleBiLayer on the start and a LastBiLayer on the end of the pipeline, or
+ * - LeftClosedUniPipeline - has a FirstBiLayer on the start and a TransitiveBiLayer on the end of the pipeline, or
+ * - RightClosedUniPipeline - has a TransitiveBiLayer on the start and a LastBiLayer on the end of the pipeline, or
  * - ClosedUniPipeline - has a FirstBiLayer on the start and a LastBiLayer on the end of the pipeline.
  *
  * Pipelines cannot be created by using constructor but from layer (toPipeline() method)
@@ -25,8 +27,8 @@ import pl.karol202.plumber.PublicApi
 @PublicApi
 abstract class UniPipeline<I, O>
 {
-	internal abstract val firstElement: UniPipelineElementWithSuccessor<I, *, I, O, *, *>
-	internal abstract val lastElement: UniPipelineElementWithPredecessor<*, O, I, O, *, *>
+	internal abstract val firstElement: PipelineElementWithSuccessor<I, *, I, O, *, *>
+	internal abstract val lastElement: PipelineElementWithPredecessor<*, O, I, O, *, *>
 
 	/**
 	 * Transforms data from input type to output type
@@ -43,19 +45,25 @@ abstract class UniPipeline<I, O>
  * - O - output type of pipeline
  */
 @PublicApi
-class OpenUniPipeline<I, O> internal constructor(override val firstElement: StartUniPipelineTerminator<I, O, O>,
-                                                 override val lastElement: EndUniPipelineTerminator<I, O, I>) :
+class OpenUniPipeline<I, O> internal constructor(override val firstElement: StartPipelineTerminator<I, O, O>,
+                                                 override val lastElement: EndPipelineTerminator<I, O, I>) :
 		UniPipeline<I, O>()
 {
 	companion object
 	{
-		fun <I, O> fromLayer(layer: MiddleLayer<I, O>): OpenUniPipeline<I, O>
+		@PublicApi
+		fun <I, O> fromLayer(layer: TransitiveLayer<I, O>): OpenUniPipeline<I, O>
 		{
-			val endTerminator = EndUniPipelineTerminator<I, O, I>()
-			val middleElement = MiddleUniPipelineElement(layer, endTerminator)
-			val startTerminator = StartUniPipelineTerminator(middleElement)
+			val endTerminator = EndPipelineTerminator<I, O, I>()
+			val middleElement = MiddlePipelineElement(layer, endTerminator)
+			val startTerminator = StartPipelineTerminator(middleElement)
 			return OpenUniPipeline(startTerminator, endTerminator)
 		}
+
+		@PublicApi
+		fun <I, O> fromLayer(layer: TransitiveBiLayer<I, O>): OpenUniPipeline<I, O> = fromLayer(object : TransitiveLayer<I, O> {
+			override fun transform(input: I) = layer.transform(input)
+		})
 	}
 
 	/**
@@ -66,7 +74,7 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
 	{
 		val rightElement = rightPipeline.firstElement.nextElement.copyWithNewPI<I, I>()
 		val leftElement = lastElement.previousElement.copyBackwardsWithNewPO(rightElement)
-		return OpenUniPipeline(leftElement.firstElement as StartUniPipelineTerminator<I, NO, NO>, rightElement.lastElement as EndUniPipelineTerminator<I, NO, I>)
+		return OpenUniPipeline(leftElement.firstElement as StartPipelineTerminator<I, NO, NO>, rightElement.lastElement as EndPipelineTerminator<I, NO, I>)
 	}
 
 	@PublicApi
@@ -74,18 +82,28 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
 	{
 		val rightElement = rightPipeline.firstElement.nextElement.copyWithNewPI<I, I>()
 		val leftElement = lastElement.previousElement.copyBackwardsWithNewPO(rightElement)
-		return RightClosedUniPipeline(leftElement.firstElement as StartUniPipelineTerminator<I, Unit, LEI>, rightElement.lastElement as LastUniPipelineElement<LEI, I, I>)
+		return RightClosedUniPipeline(leftElement.firstElement as StartPipelineTerminator<I, Unit, LEI>, rightElement.lastElement as LastPipelineElement<LEI, I, I>)
 	}
 
 	@PublicApi
-	operator fun <NO> plus(rightLayer: MiddleLayer<O, NO>): OpenUniPipeline<I, NO> = this + OpenUniPipeline.fromLayer(rightLayer)
+	operator fun <NO> plus(rightLayer: TransitiveLayer<O, NO>): OpenUniPipeline<I, NO> =
+			this + OpenUniPipeline.fromLayer(rightLayer)
 
 	@PublicApi
-	operator fun plus(rightLayer: LastLayer<O>): RightClosedUniPipeline<I, O> = this + RightClosedUniPipeline.fromLayer(rightLayer)
+	operator fun <NO> plus(rightLayer: TransitiveBiLayer<O, NO>): OpenUniPipeline<I, NO> =
+			this + OpenUniPipeline.fromLayer(rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: ConsumerLayer<O>): RightClosedUniPipeline<I, O> =
+			this + RightClosedUniPipeline.fromLayer(rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: TerminalBiLayer<O>): RightClosedUniPipeline<I, O> =
+			this + RightClosedUniPipeline.fromLayer(rightLayer)
 }
 
 /**
- * LeftClosedUniPipeline has a FirstBiLayer on the start and a MiddleBiLayer on the end of the pipeline.
+ * LeftClosedUniPipeline has a FirstBiLayer on the start and a TransitiveBiLayer on the end of the pipeline.
  * Input type of LeftClosedUniPipeline is Unit.
  *
  * Generic types:
@@ -93,18 +111,24 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
  * - FEO - output type of first layer, it is not important for using of pipeline, so can be ignored
  */
 @PublicApi
-class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstElement: FirstUniPipelineElement<FEO, O, O>,
-                                                         override val lastElement: EndUniPipelineTerminator<Unit, O, FEO>) :
+class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstElement: FirstPipelineElement<FEO, O, O>,
+                                                         override val lastElement: EndPipelineTerminator<Unit, O, FEO>) :
 		UniPipeline<Unit, O>()
 {
 	companion object
 	{
-		fun <O> fromLayer(layer: FirstLayer<O>): LeftClosedUniPipeline<O, O>
+		@PublicApi
+		fun <O> fromLayer(layer: CreatorLayer<O>): LeftClosedUniPipeline<O, O>
 		{
-			val endTerminator = EndUniPipelineTerminator<Unit, O, O>()
-			val firstElement = FirstUniPipelineElement(layer, endTerminator)
+			val endTerminator = EndPipelineTerminator<Unit, O, O>()
+			val firstElement = FirstPipelineElement(layer, endTerminator)
 			return LeftClosedUniPipeline(firstElement, endTerminator)
 		}
+
+		@PublicApi
+		fun <T> fromLayer(layer: TerminalBiLayer<T>): LeftClosedUniPipeline<T, T> = fromLayer(object : CreatorLayer<T> {
+			override fun transform(input: Unit) = layer.transformBack(input)
+		})
 	}
 
 	/**
@@ -121,7 +145,7 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 	{
 		val rightElement = rightPipeline.firstElement.nextElement.copyWithNewPI<Unit, FEO>()
 		val leftElement = lastElement.previousElement.copyBackwardsWithNewPO(rightElement)
-		return LeftClosedUniPipeline(leftElement.firstElement as FirstUniPipelineElement<FEO, NO, NO>, rightElement.lastElement as EndUniPipelineTerminator<Unit, NO, FEO>)
+		return LeftClosedUniPipeline(leftElement.firstElement as FirstPipelineElement<FEO, NO, NO>, rightElement.lastElement as EndPipelineTerminator<Unit, NO, FEO>)
 	}
 
 	@PublicApi
@@ -129,19 +153,25 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 	{
 		val rightElement = rightPipeline.firstElement.nextElement.copyWithNewPI<Unit, FEO>()
 		val leftElement = lastElement.previousElement.copyBackwardsWithNewPO(rightElement)
-		return ClosedUniPipeline(leftElement.firstElement as FirstUniPipelineElement<FEO, Unit, LEI>, rightElement.lastElement as LastUniPipelineElement<LEI, Unit, FEO>)
+		return ClosedUniPipeline(leftElement.firstElement as FirstPipelineElement<FEO, Unit, LEI>, rightElement.lastElement as LastPipelineElement<LEI, Unit, FEO>)
 	}
 
 	@PublicApi
-	operator fun <NO> plus(rightLayer: MiddleLayer<O, NO>): LeftClosedUniPipeline<NO, FEO> = this + OpenUniPipeline.fromLayer(rightLayer)
+	operator fun <NO> plus(rightLayer: TransitiveLayer<O, NO>): LeftClosedUniPipeline<NO, FEO> = this + OpenUniPipeline.fromLayer(rightLayer)
 
 	@PublicApi
-	operator fun plus(rightLayer: LastLayer<O>): ClosedUniPipeline = this + RightClosedUniPipeline.fromLayer(rightLayer)
+	operator fun <NO> plus(rightLayer: TransitiveBiLayer<O, NO>): LeftClosedUniPipeline<NO, FEO> = this + OpenUniPipeline.fromLayer(rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: ConsumerLayer<O>): ClosedUniPipeline = this + RightClosedUniPipeline.fromLayer(rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: TerminalBiLayer<O>): ClosedUniPipeline = this + RightClosedUniPipeline.fromLayer(rightLayer)
 }
 
 
 /**
- * RightClosedUniPipeline has a MiddleBiLayer on the start and a LastBiLayer on the end of the pipeline.
+ * RightClosedUniPipeline has a TransitiveBiLayer on the start and a LastBiLayer on the end of the pipeline.
  * Output type of RightClosedUniPipeline is Unit.
  *
  * Generic types:
@@ -149,18 +179,24 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
  * - LEI - input type of last layer, it is not important for using of pipeline, so can be ignored
  */
 @PublicApi
-class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElement: StartUniPipelineTerminator<I, Unit, LEI>,
-                                                          override val lastElement: LastUniPipelineElement<LEI, I, I>) :
+class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElement: StartPipelineTerminator<I, Unit, LEI>,
+                                                          override val lastElement: LastPipelineElement<LEI, I, I>) :
 		UniPipeline<I, Unit>()
 {
 	companion object
 	{
-		fun <I> fromLayer(layer: LastLayer<I>): RightClosedUniPipeline<I, I>
+		@PublicApi
+		fun <I> fromLayer(layer: ConsumerLayer<I>): RightClosedUniPipeline<I, I>
 		{
-			val lastElement = LastUniPipelineElement<I, I, I>(layer)
-			val startTerminator = StartUniPipelineTerminator(lastElement)
+			val lastElement = LastPipelineElement<I, I, I>(layer)
+			val startTerminator = StartPipelineTerminator(lastElement)
 			return RightClosedUniPipeline(startTerminator, lastElement)
 		}
+
+		@PublicApi
+		fun <T> fromLayer(layer: TerminalBiLayer<T>): RightClosedUniPipeline<T, T> = fromLayer(object : ConsumerLayer<T> {
+			override fun transform(input: T) = layer.transform(input)
+		})
 	}
 }
 
@@ -169,6 +205,6 @@ class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElem
  * Both input type and output type of ClosedUniPipeline is Unit.
  */
 @PublicApi
-class ClosedUniPipeline internal constructor(override val firstElement: FirstUniPipelineElement<*, Unit, *>,
-                                             override val lastElement: LastUniPipelineElement<*, Unit, *>) :
+class ClosedUniPipeline internal constructor(override val firstElement: FirstPipelineElement<*, Unit, *>,
+                                             override val lastElement: LastPipelineElement<*, Unit, *>) :
 		UniPipeline<Unit, Unit>()

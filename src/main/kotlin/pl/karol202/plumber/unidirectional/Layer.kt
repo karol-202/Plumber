@@ -1,6 +1,8 @@
 package pl.karol202.plumber.unidirectional
 
 import pl.karol202.plumber.PublicApi
+import pl.karol202.plumber.bidirectional.TerminalBiLayer
+import pl.karol202.plumber.bidirectional.TransitiveBiLayer
 
 @PublicApi
 interface Layer<I, O>
@@ -16,45 +18,85 @@ interface Layer<I, O>
  * First layer is layer creating data (for example from IO operations). It can be only a start of a pipeline.
  */
 @PublicApi
-interface FirstLayer<O> : Layer<Unit, O>
+interface CreatorLayer<O> : Layer<Unit, O>
 
 /**
  * Middle layer is layer transforming data between input and output types.
  * It can middle part of a pipeline as well as start or end part.
  */
 @PublicApi
-interface MiddleLayer<I, O> : Layer<I, O>
+interface TransitiveLayer<I, O> : Layer<I, O>
 
 /**
  * Last layer is layer consuming data. It can be only an end of a pipeline.
  */
 @PublicApi
-interface LastLayer<I> : Layer<I, Unit>
+interface ConsumerLayer<I> : Layer<I, Unit>
 
 /**
  * Following methods are '+' operator overloads and are used to join layers with other layers
  * or pipelines in order to create new pipelines.
  */
-operator fun <O, NO> FirstLayer<O>.plus(rightPipeline: OpenUniPipeline<O, NO>): LeftClosedUniPipeline<NO, O> =
+@PublicApi
+operator fun <O, NO> CreatorLayer<O>.plus(rightPipeline: OpenUniPipeline<O, NO>): LeftClosedUniPipeline<NO, O> =
 		LeftClosedUniPipeline.fromLayer(this) + rightPipeline
 
-operator fun <O, LEI> FirstLayer<O>.plus(rightPipeline: RightClosedUniPipeline<O, LEI>): ClosedUniPipeline =
+@PublicApi
+operator fun <O, LEI> CreatorLayer<O>.plus(rightPipeline: RightClosedUniPipeline<O, LEI>): ClosedUniPipeline =
 		LeftClosedUniPipeline.fromLayer(this) + rightPipeline
 
-operator fun <O, NO> FirstLayer<O>.plus(rightLayer: MiddleLayer<O, NO>): LeftClosedUniPipeline<NO, O> =
+@PublicApi
+operator fun <O, NO> CreatorLayer<O>.plus(rightLayer: TransitiveLayer<O, NO>): LeftClosedUniPipeline<NO, O> =
 		LeftClosedUniPipeline.fromLayer(this) + OpenUniPipeline.fromLayer(rightLayer)
 
-operator fun <O> FirstLayer<O>.plus(rightLayer: LastLayer<O>): ClosedUniPipeline =
+@PublicApi
+operator fun <O> CreatorLayer<O>.plus(rightLayer: ConsumerLayer<O>): ClosedUniPipeline =
 		LeftClosedUniPipeline.fromLayer(this) + RightClosedUniPipeline.fromLayer(rightLayer)
 
-operator fun <I, O, NO> MiddleLayer<I, O>.plus(rightPipeline: OpenUniPipeline<O, NO>): OpenUniPipeline<I, NO> =
+@PublicApi
+operator fun <O, NO> TerminalBiLayer<O>.plus(rightPipeline: OpenUniPipeline<O, NO>): LeftClosedUniPipeline<NO, O> =
+		LeftClosedUniPipeline.fromLayer(this) + rightPipeline
+
+@PublicApi
+operator fun <O, LEI> TerminalBiLayer<O>.plus(rightPipeline: RightClosedUniPipeline<O, LEI>): ClosedUniPipeline =
+		LeftClosedUniPipeline.fromLayer(this) + rightPipeline
+
+@PublicApi
+operator fun <O, NO> TerminalBiLayer<O>.plus(rightLayer: TransitiveLayer<O, NO>): LeftClosedUniPipeline<NO, O> =
+		LeftClosedUniPipeline.fromLayer(this) + OpenUniPipeline.fromLayer(rightLayer)
+
+@PublicApi
+operator fun <O> TerminalBiLayer<O>.plus(rightLayer: ConsumerLayer<O>): ClosedUniPipeline =
+		LeftClosedUniPipeline.fromLayer(this) + RightClosedUniPipeline.fromLayer(rightLayer)
+
+@PublicApi
+operator fun <I, O, NO> TransitiveLayer<I, O>.plus(rightPipeline: OpenUniPipeline<O, NO>): OpenUniPipeline<I, NO> =
 		OpenUniPipeline.fromLayer(this) + rightPipeline
 
-operator fun <I, O, LEI> MiddleLayer<I, O>.plus(rightPipeline: RightClosedUniPipeline<O, LEI>): RightClosedUniPipeline<I, LEI> =
+@PublicApi
+operator fun <I, O, LEI> TransitiveLayer<I, O>.plus(rightPipeline: RightClosedUniPipeline<O, LEI>): RightClosedUniPipeline<I, LEI> =
 		OpenUniPipeline.fromLayer(this) + rightPipeline
 
-operator fun <I, O, NO> MiddleLayer<I, O>.plus(rightLayer: MiddleLayer<O, NO>): OpenUniPipeline<I, NO> =
+@PublicApi
+operator fun <I, O, NO> TransitiveLayer<I, O>.plus(rightLayer: TransitiveLayer<O, NO>): OpenUniPipeline<I, NO> =
 		OpenUniPipeline.fromLayer(this) + OpenUniPipeline.fromLayer(rightLayer)
 
-operator fun <I, O> MiddleLayer<I, O>.plus(rightLayer: LastLayer<O>): RightClosedUniPipeline<I, O> =
+@PublicApi
+operator fun <I, O> TransitiveLayer<I, O>.plus(rightLayer: ConsumerLayer<O>): RightClosedUniPipeline<I, O> =
+		OpenUniPipeline.fromLayer(this) + RightClosedUniPipeline.fromLayer(rightLayer)
+
+@PublicApi
+operator fun <I, O, NO> TransitiveBiLayer<I, O>.plus(rightPipeline: OpenUniPipeline<O, NO>): OpenUniPipeline<I, NO> =
+		OpenUniPipeline.fromLayer(this) + rightPipeline
+
+@PublicApi
+operator fun <I, O, LEI> TransitiveBiLayer<I, O>.plus(rightPipeline: RightClosedUniPipeline<O, LEI>): RightClosedUniPipeline<I, LEI> =
+		OpenUniPipeline.fromLayer(this) + rightPipeline
+
+@PublicApi
+operator fun <I, O, NO> TransitiveBiLayer<I, O>.plus(rightLayer: TransitiveLayer<O, NO>): OpenUniPipeline<I, NO> =
+		OpenUniPipeline.fromLayer(this) + OpenUniPipeline.fromLayer(rightLayer)
+
+@PublicApi
+operator fun <I, O> TransitiveBiLayer<I, O>.plus(rightLayer: ConsumerLayer<O>): RightClosedUniPipeline<I, O> =
 		OpenUniPipeline.fromLayer(this) + RightClosedUniPipeline.fromLayer(rightLayer)
