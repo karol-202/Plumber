@@ -42,10 +42,6 @@ interface ConvertibleToRightClosedBiPipeline<I, LEI>
 	fun toRightClosedBiPipeline(): RightClosedBiPipeline<I, LEI>
 }
 
-/**
- * Following methods are '+' operator overloads and are used to join layers with other layers
- * or pipelines in order to create new pipelines.
- */
 @PublicApi
 operator fun <O, NO, FEO> ConvertibleToLeftClosedUniPipeline<O, FEO>.plus(right: ConvertibleToOpenUniPipeline<O, NO>):
 		LeftClosedUniPipeline<NO, FEO> = toLeftClosedUniPipeline() + right.toOpenUniPipeline()

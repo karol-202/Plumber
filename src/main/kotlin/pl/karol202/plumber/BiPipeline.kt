@@ -1,21 +1,6 @@
 package pl.karol202.plumber
 
 /**
- * Pipeline is an ordered set of operations transforming data from input to output type.
- * Pipeline consists of objects implementing BiLayer interface.
- * Each layer transforms data from type being the output type of previous layer (unless it's first layer
- * which input type is the input type of whole pipeline) to type being the input type of next layer (unless it's last layer
- * which output type is the output type of whole pipeline).
- *
- * Every pipeline is either:
- * - OpenPipeline - has a MiddleLayers both on the start and on the end of the pipeline, or
- * - LeftClosedPipeline - has a FirstBiLayer on the start and a TransitiveBiLayer on the end of the pipeline, or
- * - RightClosedPipeline - has a TransitiveBiLayer on the start and a LastBiLayer on the end of the pipeline, or
- * - ClosedPipeline - has a FirstBiLayer on the start and a LastBiLayer on the end of the pipeline.
- *
- * Pipelines cannot be created by using constructor but from layer (toPipeline() method)
- * or by joining pipeline with pipeline, pipe
- *
  * Generic types:
  * - I - input type of pipeline
  * - O - output type of pipeline
@@ -26,9 +11,6 @@ sealed class BiPipeline<I, O>
 	internal abstract val forwardUniPipeline: UniPipeline<I, O>
 	internal abstract val backwardUniPipeline: UniPipeline<O, I>
 
-	/**
-	 * Transforms data from input type to output type
-	 */
 	@PublicApi
 	fun transform(input: I): O = forwardUniPipeline.transform(input)
 
@@ -37,8 +19,6 @@ sealed class BiPipeline<I, O>
 }
 
 /**
- * OpenPipeline has MiddleLayers both on the start and on the end of the pipeline.
- *
  * Generic types:
  * - I - input type of pipeline
  * - O - output type of pipeline
@@ -68,9 +48,6 @@ class OpenBiPipeline<I, O> internal constructor(override val forwardUniPipeline:
 		}
 	}
 
-	/**
-	 * Following operator methods join two pipelines into a new one
-	 */
 	@PublicApi
 	operator fun <NO> plus(rightPipeline: OpenBiPipeline<O, NO>): OpenBiPipeline<I, NO> = fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline, rightPipeline.backwardUniPipeline + backwardUniPipeline)
 
@@ -82,9 +59,6 @@ class OpenBiPipeline<I, O> internal constructor(override val forwardUniPipeline:
 }
 
 /**
- * LeftClosedPipeline has a FirstBiLayer on the start and a TransitiveBiLayer on the end of the pipeline.
- * Input type of LeftClosedPipeline is Unit.
- *
  * Generic types:
  * - O - output type of pipeline
  * - FEO - output type of first layer, it is not important for using of pipeline, so can be ignored
@@ -114,15 +88,9 @@ class LeftClosedBiPipeline<O, FEO> internal constructor(override val forwardUniP
 		}
 	}
 
-	/**
-	 * Shorthand for transformForward(Unit)
-	 */
 	@PublicApi
 	fun transform(): O = transform(Unit)
 
-	/**
-	 * Following operator methods join two pipelines into a new one
-	 */
 	@PublicApi
 	operator fun <NO> plus(rightPipeline: OpenBiPipeline<O, NO>): LeftClosedBiPipeline<NO, FEO> =
 			fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline,
@@ -139,9 +107,6 @@ class LeftClosedBiPipeline<O, FEO> internal constructor(override val forwardUniP
 
 
 /**
- * RightClosedPipeline has a TransitiveBiLayer on the start and a LastBiLayer on the end of the pipeline.
- * Output type of RightClosedPipeline is Unit.
- *
  * Generic types:
  * - I - input type of pipeline
  * - LEI - input type of last layer, it is not important for using of pipeline, so can be ignored
@@ -171,9 +136,6 @@ class RightClosedBiPipeline<I, LEI> internal constructor(override val forwardUni
 		}
 	}
 
-	/**
-	 * Shorthand for transformBackward(Unit)
-	 */
 	@PublicApi
 	fun transformBack(): I = transformBack(Unit)
 
@@ -181,10 +143,6 @@ class RightClosedBiPipeline<I, LEI> internal constructor(override val forwardUni
 	override fun toRightClosedBiPipeline(): RightClosedBiPipeline<I, LEI> = this
 }
 
-/**
- * ClosedPipeline has a FirstBiLayer on the start and a LastBiLayer on the end of the pipeline.
- * Both input type and output type of ClosedPipeline is Unit.
- */
 @PublicApi
 class ClosedBiPipeline internal constructor(override val forwardUniPipeline: ClosedUniPipeline,
                                             override val backwardUniPipeline: ClosedUniPipeline) :

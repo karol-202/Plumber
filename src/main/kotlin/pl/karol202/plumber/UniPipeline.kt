@@ -1,21 +1,6 @@
 package pl.karol202.plumber
 
 /**
- * UniPipeline is an ordered set of operations transforming data from input to output type.
- * UniPipeline consists of objects implementing BiLayer interface.
- * Each layer transforms data from type being the output type of previous layer (unless it's first layer
- * which input type is the input type of whole pipeline) to type being the input type of next layer (unless it's last layer
- * which output type is the output type of whole pipeline).
- *
- * Every pipeline is either:
- * - OpenUniPipeline - has a MiddleLayers both on the start and on the end of the pipeline, or
- * - LeftClosedUniPipeline - has a FirstBiLayer on the start and a TransitiveBiLayer on the end of the pipeline, or
- * - RightClosedUniPipeline - has a TransitiveBiLayer on the start and a LastBiLayer on the end of the pipeline, or
- * - ClosedUniPipeline - has a FirstBiLayer on the start and a LastBiLayer on the end of the pipeline.
- *
- * Pipelines cannot be created by using constructor but from layer (toPipeline() method)
- * or by joining pipeline with pipeline, pipe
- *
  * Generic types:
  * - I - input type of pipeline
  * - O - output type of pipeline
@@ -26,16 +11,11 @@ sealed class UniPipeline<I, O>
 	internal abstract val firstElement: PipelineElementWithSuccessor<I, *, I, O, *, *>
 	internal abstract val lastElement: PipelineElementWithPredecessor<*, O, I, O, *, *>
 
-	/**
-	 * Transforms data from input type to output type
-	 */
     @PublicApi
 	fun transform(input: I): O = firstElement.transform(input)
 }
 
 /**
- * OpenUniPipeline has MiddleLayers both on the start and on the end of the pipeline.
- *
  * Generic types:
  * - I - input type of pipeline
  * - O - output type of pipeline
@@ -88,9 +68,6 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
 }
 
 /**
- * LeftClosedUniPipeline has a FirstBiLayer on the start and a TransitiveBiLayer on the end of the pipeline.
- * Input type of LeftClosedUniPipeline is Unit.
- *
  * Generic types:
  * - O - output type of pipeline
  * - FEO - output type of first layer, it is not important for using of pipeline, so can be ignored
@@ -116,15 +93,9 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 		})
 	}
 
-	/**
-	 * Shorthand for transformForward(Unit)
-	 */
 	@PublicApi
 	fun transform(): O = transform(Unit)
 
-	/**
-	 * Following operator methods join two pipelines into a new one
-	 */
 	@PublicApi
 	operator fun <NO> plus(rightPipeline: OpenUniPipeline<O, NO>): LeftClosedUniPipeline<NO, FEO>
 	{
@@ -149,9 +120,6 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 
 
 /**
- * RightClosedUniPipeline has a TransitiveBiLayer on the start and a LastBiLayer on the end of the pipeline.
- * Output type of RightClosedUniPipeline is Unit.
- *
  * Generic types:
  * - I - input type of pipeline
  * - LEI - input type of last layer, it is not important for using of pipeline, so can be ignored
@@ -180,10 +148,6 @@ class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElem
 	override fun toRightClosedUniPipeline(): RightClosedUniPipeline<I, LEI> = this
 }
 
-/**
- * ClosedUniPipeline has a FirstBiLayer on the start and a LastBiLayer on the end of the pipeline.
- * Both input type and output type of ClosedUniPipeline is Unit.
- */
 @PublicApi
 class ClosedUniPipeline internal constructor(override val firstElement: FirstPipelineElement<*, Unit, *>,
                                              override val lastElement: LastPipelineElement<*, Unit, *>) :
