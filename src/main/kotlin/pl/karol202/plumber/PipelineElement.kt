@@ -1,9 +1,5 @@
 package pl.karol202.plumber
 
-import pl.karol202.plumber.unidirectional.ConsumerLayer
-import pl.karol202.plumber.unidirectional.CreatorLayer
-import pl.karol202.plumber.unidirectional.TransitiveLayer
-
 /**
  * I - input of element
  * O - output of element
