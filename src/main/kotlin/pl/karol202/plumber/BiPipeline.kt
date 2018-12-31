@@ -16,6 +16,9 @@ sealed class BiPipeline<I, O>
 
 	@PublicApi
 	fun transformBack(input: O): Output<I> = backwardUniPipeline.transform(input)
+
+	@PublicApi
+	abstract fun invert(): BiPipeline<O, I>
 }
 
 /**
@@ -60,6 +63,9 @@ class OpenBiPipeline<I, O> internal constructor(override val forwardUniPipeline:
 
 	@PublicApi
 	override fun toOpenBiPipeline(): OpenBiPipeline<I, O> = this
+
+	@PublicApi
+	override fun invert() = fromUniPipelines(backwardUniPipeline, forwardUniPipeline)
 }
 
 /**
@@ -107,6 +113,9 @@ class LeftClosedBiPipeline<O, FEO> internal constructor(override val forwardUniP
 
 	@PublicApi
 	override fun toLeftClosedBiPipeline(): LeftClosedBiPipeline<O, FEO> = this
+
+	@PublicApi
+	override fun invert() = RightClosedBiPipeline.fromUniPipelines(backwardUniPipeline, forwardUniPipeline)
 }
 
 
@@ -145,6 +154,9 @@ class RightClosedBiPipeline<I, LEI> internal constructor(override val forwardUni
 
 	@PublicApi
 	override fun toRightClosedBiPipeline(): RightClosedBiPipeline<I, LEI> = this
+
+	@PublicApi
+	override fun invert() = LeftClosedBiPipeline.fromUniPipelines(backwardUniPipeline, forwardUniPipeline)
 }
 
 @PublicApi
@@ -158,4 +170,7 @@ class ClosedBiPipeline internal constructor(override val forwardUniPipeline: Clo
 		fun fromUniPipelines(forwardUniPipeline: ClosedUniPipeline,
 		                     backwardUniPipeline: ClosedUniPipeline): ClosedBiPipeline = ClosedBiPipeline(forwardUniPipeline, backwardUniPipeline)
 	}
+
+	@PublicApi
+	override fun invert() = fromUniPipelines(backwardUniPipeline, forwardUniPipeline)
 }
