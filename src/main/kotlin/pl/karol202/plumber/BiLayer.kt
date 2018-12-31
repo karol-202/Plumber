@@ -35,11 +35,11 @@ interface TransitiveBiLayerWithFlowControl<I, O> : BiLayerWithFlowControl<I, O>,
 			this.plus(biPipeline = rightPipeline)
 
 	@PublicApi
-	operator fun <NO> plus(rightLayer: TransitiveBiLayer<O, NO>): OpenBiPipeline<I, NO> =
+	operator fun <NO> plus(rightLayer: TransitiveBiLayerWithFlowControl<O, NO>): OpenBiPipeline<I, NO> =
 			this.plus(biPipeline = rightLayer)
 
 	@PublicApi
-	operator fun plus(rightLayer: TerminalBiLayer<O>): RightClosedBiPipeline<I, O> =
+	operator fun plus(rightLayer: TerminalBiLayerWithFlowControl<O>): RightClosedBiPipeline<I, O> =
 			this.plus(biPipeline = rightLayer)
 }
 
@@ -71,11 +71,11 @@ interface TerminalBiLayerWithFlowControl<T> : BiLayerWithFlowControl<T, Unit>,
 			this.plus(biPipeline = rightPipeline)
 
 	@PublicApi
-	operator fun <NO> plus(rightLayer: TransitiveBiLayer<T, NO>): LeftClosedBiPipeline<NO, T> =
+	operator fun <NO> plus(rightLayer: TransitiveBiLayerWithFlowControl<T, NO>): LeftClosedBiPipeline<NO, T> =
 			this.plus(biPipeline = rightLayer)
 
 	@PublicApi
-	operator fun plus(rightLayer: TerminalBiLayer<T>): ClosedBiPipeline =
+	operator fun plus(rightLayer: TerminalBiLayerWithFlowControl<T>): ClosedBiPipeline =
 			this.plus(biPipeline = rightLayer)
 }
 
