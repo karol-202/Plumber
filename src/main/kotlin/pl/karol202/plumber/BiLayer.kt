@@ -4,10 +4,10 @@ package pl.karol202.plumber
 interface BiLayer<I, O>
 {
 	@PublicApi
-	fun transform(input: I): O
+	fun transform(input: I): Output<O>
 
     @PublicApi
-	fun transformBack(input: O): I
+	fun transformBack(input: O): Output<I>
 }
 
 @PublicApi

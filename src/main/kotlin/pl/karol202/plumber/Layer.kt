@@ -4,7 +4,7 @@ package pl.karol202.plumber
 interface Layer<I, O>
 {
 	@PublicApi
-	fun transform(input: I): O
+	fun transform(input: I): Output<O>
 }
 
 @PublicApi

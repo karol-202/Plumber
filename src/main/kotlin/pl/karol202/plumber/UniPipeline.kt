@@ -12,7 +12,7 @@ sealed class UniPipeline<I, O>
 	internal abstract val lastElement: PipelineElementWithPredecessor<*, O, I, O, *, *>
 
     @PublicApi
-	fun transform(input: I): O = firstElement.transform(input)
+	fun transform(input: I): Output<O> = firstElement.transform(input)
 }
 
 /**
@@ -94,7 +94,7 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 	}
 
 	@PublicApi
-	fun transform(): O = transform(Unit)
+	fun transform(): Output<O> = transform(Unit)
 
 	@PublicApi
 	operator fun <NO> plus(rightPipeline: OpenUniPipeline<O, NO>): LeftClosedUniPipeline<NO, FEO>

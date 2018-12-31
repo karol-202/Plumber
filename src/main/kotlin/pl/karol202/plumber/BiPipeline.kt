@@ -12,10 +12,10 @@ sealed class BiPipeline<I, O>
 	internal abstract val backwardUniPipeline: UniPipeline<O, I>
 
 	@PublicApi
-	fun transform(input: I): O = forwardUniPipeline.transform(input)
+	fun transform(input: I): Output<O> = forwardUniPipeline.transform(input)
 
 	@PublicApi
-	fun transformBack(input: O): I = backwardUniPipeline.transform(input)
+	fun transformBack(input: O): Output<I> = backwardUniPipeline.transform(input)
 }
 
 /**
@@ -49,10 +49,14 @@ class OpenBiPipeline<I, O> internal constructor(override val forwardUniPipeline:
 	}
 
 	@PublicApi
-	operator fun <NO> plus(rightPipeline: OpenBiPipeline<O, NO>): OpenBiPipeline<I, NO> = fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline, rightPipeline.backwardUniPipeline + backwardUniPipeline)
+	operator fun <NO> plus(rightPipeline: OpenBiPipeline<O, NO>): OpenBiPipeline<I, NO> =
+			fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline,
+							rightPipeline.backwardUniPipeline + backwardUniPipeline)
 
 	@PublicApi
-	operator fun <LEI> plus(rightPipeline: RightClosedBiPipeline<O, LEI>): RightClosedBiPipeline<I, LEI> = RightClosedBiPipeline.fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline, rightPipeline.backwardUniPipeline + backwardUniPipeline)
+	operator fun <LEI> plus(rightPipeline: RightClosedBiPipeline<O, LEI>): RightClosedBiPipeline<I, LEI> =
+			RightClosedBiPipeline.fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline,
+												  rightPipeline.backwardUniPipeline + backwardUniPipeline)
 
 	@PublicApi
 	override fun toOpenBiPipeline(): OpenBiPipeline<I, O> = this
@@ -89,7 +93,7 @@ class LeftClosedBiPipeline<O, FEO> internal constructor(override val forwardUniP
 	}
 
 	@PublicApi
-	fun transform(): O = transform(Unit)
+	fun transform(): Output<O> = transform(Unit)
 
 	@PublicApi
 	operator fun <NO> plus(rightPipeline: OpenBiPipeline<O, NO>): LeftClosedBiPipeline<NO, FEO> =
@@ -137,7 +141,7 @@ class RightClosedBiPipeline<I, LEI> internal constructor(override val forwardUni
 	}
 
 	@PublicApi
-	fun transformBack(): I = transformBack(Unit)
+	fun transformBack(): Output<I> = transformBack(Unit)
 
 	@PublicApi
 	override fun toRightClosedBiPipeline(): RightClosedBiPipeline<I, LEI> = this
