@@ -62,6 +62,12 @@ class OpenBiPipeline<I, O> internal constructor(override val forwardUniPipeline:
 												  rightPipeline.backwardUniPipeline + backwardUniPipeline)
 
 	@PublicApi
+	operator fun <NO> plus(rightLayer: TransitiveBiLayer<O, NO>): OpenBiPipeline<I, NO> = this.plus(biPipeline = rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: TerminalBiLayer<O>): RightClosedBiPipeline<I, O> = this.plus(biPipeline = rightLayer)
+
+	@PublicApi
 	override fun toOpenUniPipeline(): OpenUniPipeline<I, O> = forwardUniPipeline
 
 	@PublicApi
@@ -113,6 +119,13 @@ class LeftClosedBiPipeline<O, FEO> internal constructor(override val forwardUniP
 	operator fun <LEI> plus(rightPipeline: RightClosedBiPipeline<O, LEI>): ClosedBiPipeline =
 			ClosedBiPipeline.fromUniPipelines(forwardUniPipeline + rightPipeline.forwardUniPipeline,
 											 rightPipeline.backwardUniPipeline + backwardUniPipeline)
+
+	@PublicApi
+	operator fun <NO> plus(rightLayer: TransitiveBiLayer<O, NO>): LeftClosedBiPipeline<NO, FEO> =
+			this.plus(biPipeline = rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: TerminalBiLayer<O>): ClosedBiPipeline = this.plus(biPipeline = rightLayer)
 
 	@PublicApi
 	override fun toLeftClosedUniPipeline(): LeftClosedUniPipeline<O, FEO> = forwardUniPipeline

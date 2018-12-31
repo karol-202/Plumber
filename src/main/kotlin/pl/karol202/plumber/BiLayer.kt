@@ -25,6 +25,22 @@ interface TransitiveBiLayerWithFlowControl<I, O> : BiLayerWithFlowControl<I, O>,
 
 		override fun transformBackWithFlowControl(input: I) = this@TransitiveBiLayerWithFlowControl.transformWithFlowControl(input)
 	}
+
+	@PublicApi
+	operator fun <NO> plus(rightPipeline: OpenBiPipeline<O, NO>): OpenBiPipeline<I, NO> =
+			this.plus(biPipeline = rightPipeline)
+
+	@PublicApi
+	operator fun <LEI> plus(rightPipeline: RightClosedBiPipeline<O, LEI>): RightClosedBiPipeline<I, LEI> =
+			this.plus(biPipeline = rightPipeline)
+
+	@PublicApi
+	operator fun <NO> plus(rightLayer: TransitiveBiLayer<O, NO>): OpenBiPipeline<I, NO> =
+			this.plus(biPipeline = rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: TerminalBiLayer<O>): RightClosedBiPipeline<I, O> =
+			this.plus(biPipeline = rightLayer)
 }
 
 @PublicApi
@@ -45,6 +61,22 @@ interface TerminalBiLayerWithFlowControl<T> : BiLayerWithFlowControl<T, Unit>,
 
 	@PublicApi
 	override fun toRightClosedBiPipeline(): RightClosedBiPipeline<T, T> = RightClosedBiPipeline.fromLayer(this)
+
+	@PublicApi
+	operator fun <NO> plus(rightPipeline: OpenBiPipeline<T, NO>): LeftClosedBiPipeline<NO, T> =
+			this.plus(biPipeline = rightPipeline)
+
+	@PublicApi
+	operator fun <LEI> plus(rightPipeline: RightClosedBiPipeline<T, LEI>): ClosedBiPipeline =
+			this.plus(biPipeline = rightPipeline)
+
+	@PublicApi
+	operator fun <NO> plus(rightLayer: TransitiveBiLayer<T, NO>): LeftClosedBiPipeline<NO, T> =
+			this.plus(biPipeline = rightLayer)
+
+	@PublicApi
+	operator fun plus(rightLayer: TerminalBiLayer<T>): ClosedBiPipeline =
+			this.plus(biPipeline = rightLayer)
 }
 
 @PublicApi
