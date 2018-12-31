@@ -27,3 +27,22 @@ interface ConsumerLayer<I> : Layer<I, Unit>, ConvertibleToRightClosedUniPipeline
 	@PublicApi
 	override fun toRightClosedUniPipeline(): RightClosedUniPipeline<I, I> = RightClosedUniPipeline.fromLayer(this)
 }
+
+@PublicApi
+interface SimpleLayer<I, O> : Layer<I, O>
+{
+	@PublicApi
+	override fun transform(input: I): Output<O> = Output.Value(transformSimply(input))
+
+	@PublicApi
+	fun transformSimply(input: I): O
+}
+
+@PublicApi
+interface SimpleCreatorLayer<O> : SimpleLayer<Unit, O>, CreatorLayer<O>
+
+@PublicApi
+interface SimpleTransitiveLayer<I, O> : SimpleLayer<I, O>, TransitiveLayer<I, O>
+
+@PublicApi
+interface SimpleConsumerLayer<I> : SimpleLayer<I, Unit>, ConsumerLayer<I>
