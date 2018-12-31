@@ -36,13 +36,13 @@ class OpenBiPipeline<I, O> internal constructor(override val forwardUniPipeline:
 				OpenBiPipeline(forwardUniPipeline, backwardUniPipeline)
 
 		@PublicApi
-		fun <I, O> fromLayer(layer: TransitiveBiLayer<I, O>): OpenBiPipeline<I, O>
+		fun <I, O> fromLayer(layer: TransitiveBiLayerWithFlowControl<I, O>): OpenBiPipeline<I, O>
 		{
-			val forwardUniPipeline = OpenUniPipeline.fromLayer(object : TransitiveLayer<I, O> {
-				override fun transform(input: I) = layer.transform(input)
+			val forwardUniPipeline = OpenUniPipeline.fromLayer(object : TransitiveLayerWithFlowControl<I, O> {
+				override fun transformWithFlowControl(input: I) = layer.transformWithFlowControl(input)
 			})
-			val backwardUniPipeline = OpenUniPipeline.fromLayer(object : TransitiveLayer<O, I> {
-				override fun transform(input: O) = layer.transformBack(input)
+			val backwardUniPipeline = OpenUniPipeline.fromLayer(object : TransitiveLayerWithFlowControl<O, I> {
+				override fun transformWithFlowControl(input: O) = layer.transformBackWithFlowControl(input)
 			})
 			return fromUniPipelines(forwardUniPipeline, backwardUniPipeline)
 		}
@@ -80,13 +80,13 @@ class LeftClosedBiPipeline<O, FEO> internal constructor(override val forwardUniP
 				LeftClosedBiPipeline(forwardUniPipeline, backwardUniPipeline)
 
 		@PublicApi
-		fun <T> fromLayer(layer: TerminalBiLayer<T>): LeftClosedBiPipeline<T, T>
+		fun <T> fromLayer(layer: TerminalBiLayerWithFlowControl<T>): LeftClosedBiPipeline<T, T>
 		{
-			val forwardUniPipeline = LeftClosedUniPipeline.fromLayer(object : CreatorLayer<T> {
-				override fun transform(input: Unit) = layer.transformBack(input)
+			val forwardUniPipeline = LeftClosedUniPipeline.fromLayer(object : CreatorLayerWithFlowControl<T> {
+				override fun transformWithFlowControl(input: Unit) = layer.transformBackWithFlowControl(input)
 			})
-			val backwardUniPipeline = RightClosedUniPipeline.fromLayer(object : ConsumerLayer<T> {
-				override fun transform(input: T) = layer.transform(input)
+			val backwardUniPipeline = RightClosedUniPipeline.fromLayer(object : ConsumerLayerWithFlowControl<T> {
+				override fun transformWithFlowControl(input: T) = layer.transformWithFlowControl(input)
 			})
 			return fromUniPipelines(forwardUniPipeline, backwardUniPipeline)
 		}
@@ -128,13 +128,13 @@ class RightClosedBiPipeline<I, LEI> internal constructor(override val forwardUni
 				RightClosedBiPipeline(forwardUniPipeline, backwardUniPipeline)
 
 		@PublicApi
-		fun <T> fromLayer(layer: TerminalBiLayer<T>): RightClosedBiPipeline<T, T>
+		fun <T> fromLayer(layer: TerminalBiLayerWithFlowControl<T>): RightClosedBiPipeline<T, T>
 		{
-			val forwardUniPipeline = RightClosedUniPipeline.fromLayer(object : ConsumerLayer<T> {
-				override fun transform(input: T) = layer.transform(input)
+			val forwardUniPipeline = RightClosedUniPipeline.fromLayer(object : ConsumerLayerWithFlowControl<T> {
+				override fun transformWithFlowControl(input: T) = layer.transformWithFlowControl(input)
 			})
-			val backwardUniPipeline = LeftClosedUniPipeline.fromLayer(object : CreatorLayer<T> {
-				override fun transform(input: Unit) = layer.transformBack(input)
+			val backwardUniPipeline = LeftClosedUniPipeline.fromLayer(object : CreatorLayerWithFlowControl<T> {
+				override fun transformWithFlowControl(input: Unit) = layer.transformBackWithFlowControl(input)
 			})
 			return fromUniPipelines(forwardUniPipeline, backwardUniPipeline)
 		}

@@ -28,7 +28,7 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
 	companion object
 	{
 		@PublicApi
-		fun <I, O> fromLayer(layer: TransitiveLayer<I, O>): OpenUniPipeline<I, O>
+		fun <I, O> fromLayer(layer: TransitiveLayerWithFlowControl<I, O>): OpenUniPipeline<I, O>
 		{
 			val endTerminator = EndPipelineTerminator<I, O, I>()
 			val middleElement = MiddlePipelineElement(layer, endTerminator)
@@ -37,8 +37,8 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
 		}
 
 		@PublicApi
-		fun <I, O> fromLayer(layer: TransitiveBiLayer<I, O>): OpenUniPipeline<I, O> = fromLayer(object : TransitiveLayer<I, O> {
-			override fun transform(input: I) = layer.transform(input)
+		fun <I, O> fromLayer(layer: TransitiveBiLayerWithFlowControl<I, O>): OpenUniPipeline<I, O> = fromLayer(object : TransitiveLayerWithFlowControl<I, O> {
+			override fun transformWithFlowControl(input: I) = layer.transformWithFlowControl(input)
 		})
 	}
 
@@ -80,7 +80,7 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 	companion object
 	{
 		@PublicApi
-		fun <O> fromLayer(layer: CreatorLayer<O>): LeftClosedUniPipeline<O, O>
+		fun <O> fromLayer(layer: CreatorLayerWithFlowControl<O>): LeftClosedUniPipeline<O, O>
 		{
 			val endTerminator = EndPipelineTerminator<Unit, O, O>()
 			val firstElement = FirstPipelineElement(layer, endTerminator)
@@ -88,8 +88,8 @@ class LeftClosedUniPipeline<O, FEO> internal constructor(override val firstEleme
 		}
 
 		@PublicApi
-		fun <T> fromLayer(layer: TerminalBiLayer<T>): LeftClosedUniPipeline<T, T> = fromLayer(object : CreatorLayer<T> {
-			override fun transform(input: Unit) = layer.transformBack(input)
+		fun <T> fromLayer(layer: TerminalBiLayerWithFlowControl<T>): LeftClosedUniPipeline<T, T> = fromLayer(object : CreatorLayerWithFlowControl<T> {
+			override fun transformWithFlowControl(input: Unit) = layer.transformBackWithFlowControl(input)
 		})
 	}
 
@@ -132,7 +132,7 @@ class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElem
 	companion object
 	{
 		@PublicApi
-		fun <I> fromLayer(layer: ConsumerLayer<I>): RightClosedUniPipeline<I, I>
+		fun <I> fromLayer(layer: ConsumerLayerWithFlowControl<I>): RightClosedUniPipeline<I, I>
 		{
 			val lastElement = LastPipelineElement<I, I, I>(layer)
 			val startTerminator = StartPipelineTerminator(lastElement)
@@ -140,8 +140,8 @@ class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElem
 		}
 
 		@PublicApi
-		fun <T> fromLayer(layer: TerminalBiLayer<T>): RightClosedUniPipeline<T, T> = fromLayer(object : ConsumerLayer<T> {
-			override fun transform(input: T) = layer.transform(input)
+		fun <T> fromLayer(layer: TerminalBiLayerWithFlowControl<T>): RightClosedUniPipeline<T, T> = fromLayer(object : ConsumerLayerWithFlowControl<T> {
+			override fun transformWithFlowControl(input: T) = layer.transformWithFlowControl(input)
 		})
 	}
 

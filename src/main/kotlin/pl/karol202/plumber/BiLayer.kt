@@ -1,17 +1,17 @@
 package pl.karol202.plumber
 
 @PublicApi
-interface BiLayer<I, O>
+interface BiLayerWithFlowControl<I, O>
 {
 	@PublicApi
-	fun transform(input: I): Output<O>
+	fun transformWithFlowControl(input: I): Output<O>
 
     @PublicApi
-	fun transformBack(input: O): Output<I>
+	fun transformBackWithFlowControl(input: O): Output<I>
 }
 
 @PublicApi
-interface TransitiveBiLayer<I, O> : BiLayer<I, O>, ConvertibleToOpenUniPipeline<I, O>, ConvertibleToOpenBiPipeline<I, O>
+interface TransitiveBiLayerWithFlowControl<I, O> : BiLayerWithFlowControl<I, O>, ConvertibleToOpenUniPipeline<I, O>, ConvertibleToOpenBiPipeline<I, O>
 {
 	@PublicApi
 	override fun toOpenUniPipeline(): OpenUniPipeline<I, O> = OpenUniPipeline.fromLayer(this)
@@ -20,19 +20,19 @@ interface TransitiveBiLayer<I, O> : BiLayer<I, O>, ConvertibleToOpenUniPipeline<
 	override fun toOpenBiPipeline(): OpenBiPipeline<I, O> = OpenBiPipeline.fromLayer(this)
 
 	@PublicApi
-	fun invert(): TransitiveBiLayer<O, I> = object : TransitiveBiLayer<O, I> {
-		override fun transform(input: O) = this@TransitiveBiLayer.transformBack(input)
+	fun invert(): TransitiveBiLayerWithFlowControl<O, I> = object : TransitiveBiLayerWithFlowControl<O, I> {
+		override fun transformWithFlowControl(input: O) = this@TransitiveBiLayerWithFlowControl.transformBackWithFlowControl(input)
 
-		override fun transformBack(input: I) = this@TransitiveBiLayer.transform(input)
+		override fun transformBackWithFlowControl(input: I) = this@TransitiveBiLayerWithFlowControl.transformWithFlowControl(input)
 	}
 }
 
 @PublicApi
-interface TerminalBiLayer<T> : BiLayer<T, Unit>,
-                               ConvertibleToLeftClosedUniPipeline<T, T>,
-                               ConvertibleToRightClosedUniPipeline<T, T>,
-                               ConvertibleToLeftClosedBiPipeline<T, T>,
-                               ConvertibleToRightClosedBiPipeline<T, T>
+interface TerminalBiLayerWithFlowControl<T> : BiLayerWithFlowControl<T, Unit>,
+                                              ConvertibleToLeftClosedUniPipeline<T, T>,
+                                              ConvertibleToRightClosedUniPipeline<T, T>,
+                                              ConvertibleToLeftClosedBiPipeline<T, T>,
+                                              ConvertibleToRightClosedBiPipeline<T, T>
 {
 	@PublicApi
 	override fun toLeftClosedUniPipeline(): LeftClosedUniPipeline<T, T> = LeftClosedUniPipeline.fromLayer(this)
@@ -48,23 +48,23 @@ interface TerminalBiLayer<T> : BiLayer<T, Unit>,
 }
 
 @PublicApi
-interface SimpleBiLayer<I, O> : BiLayer<I, O>
+interface BiLayer<I, O> : BiLayerWithFlowControl<I, O>
 {
 	@PublicApi
-	override fun transform(input: I): Output<O> = Output.Value(transformSimply(input))
+	override fun transformWithFlowControl(input: I): Output<O> = Output.Value(transform(input))
 
 	@PublicApi
-	override fun transformBack(input: O): Output<I> = Output.Value(transformBackSimply(input))
+	override fun transformBackWithFlowControl(input: O): Output<I> = Output.Value(transformBack(input))
 
 	@PublicApi
-	fun transformSimply(input: I): O
+	fun transform(input: I): O
 
 	@PublicApi
-	fun transformBackSimply(input: O): I
+	fun transformBack(input: O): I
 }
 
 @PublicApi
-interface SimpleTransitiveBiLayer<I, O> : SimpleBiLayer<I, O>, TransitiveBiLayer<I, O>
+interface TransitiveBiLayer<I, O> : BiLayer<I, O>, TransitiveBiLayerWithFlowControl<I, O>
 
 @PublicApi
-interface SimpleTerminalBiLayer<T> : SimpleBiLayer<T, Unit>, TerminalBiLayer<T>
+interface TerminalBiLayer<T> : BiLayer<T, Unit>, TerminalBiLayerWithFlowControl<T>

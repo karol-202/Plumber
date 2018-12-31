@@ -1,48 +1,48 @@
 package pl.karol202.plumber
 
 @PublicApi
-interface Layer<I, O>
+interface LayerWithFlowControl<I, O>
 {
 	@PublicApi
-	fun transform(input: I): Output<O>
+	fun transformWithFlowControl(input: I): Output<O>
 }
 
 @PublicApi
-interface CreatorLayer<O> : Layer<Unit, O>, ConvertibleToLeftClosedUniPipeline<O, O>
+interface CreatorLayerWithFlowControl<O> : LayerWithFlowControl<Unit, O>, ConvertibleToLeftClosedUniPipeline<O, O>
 {
 	@PublicApi
 	override fun toLeftClosedUniPipeline(): LeftClosedUniPipeline<O, O> = LeftClosedUniPipeline.fromLayer(this)
 }
 
 @PublicApi
-interface TransitiveLayer<I, O> : Layer<I, O>, ConvertibleToOpenUniPipeline<I, O>
+interface TransitiveLayerWithFlowControl<I, O> : LayerWithFlowControl<I, O>, ConvertibleToOpenUniPipeline<I, O>
 {
 	@PublicApi
 	override fun toOpenUniPipeline(): OpenUniPipeline<I, O> = OpenUniPipeline.fromLayer(this)
 }
 
 @PublicApi
-interface ConsumerLayer<I> : Layer<I, Unit>, ConvertibleToRightClosedUniPipeline<I, I>
+interface ConsumerLayerWithFlowControl<I> : LayerWithFlowControl<I, Unit>, ConvertibleToRightClosedUniPipeline<I, I>
 {
 	@PublicApi
 	override fun toRightClosedUniPipeline(): RightClosedUniPipeline<I, I> = RightClosedUniPipeline.fromLayer(this)
 }
 
 @PublicApi
-interface SimpleLayer<I, O> : Layer<I, O>
+interface Layer<I, O> : LayerWithFlowControl<I, O>
 {
 	@PublicApi
-	override fun transform(input: I): Output<O> = Output.Value(transformSimply(input))
+	override fun transformWithFlowControl(input: I): Output<O> = Output.Value(transform(input))
 
 	@PublicApi
-	fun transformSimply(input: I): O
+	fun transform(input: I): O
 }
 
 @PublicApi
-interface SimpleCreatorLayer<O> : SimpleLayer<Unit, O>, CreatorLayer<O>
+interface CreatorLayer<O> : Layer<Unit, O>, CreatorLayerWithFlowControl<O>
 
 @PublicApi
-interface SimpleTransitiveLayer<I, O> : SimpleLayer<I, O>, TransitiveLayer<I, O>
+interface TransitiveLayer<I, O> : Layer<I, O>, TransitiveLayerWithFlowControl<I, O>
 
 @PublicApi
-interface SimpleConsumerLayer<I> : SimpleLayer<I, Unit>, ConsumerLayer<I>
+interface ConsumerLayer<I> : Layer<I, Unit>, ConsumerLayerWithFlowControl<I>

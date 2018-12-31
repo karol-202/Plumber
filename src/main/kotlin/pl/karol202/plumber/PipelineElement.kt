@@ -31,7 +31,7 @@ internal interface PipelineElementWithSuccessor<I, O, PI, PO, FEO, LEI> : Pipeli
 			PipelineElementWithSuccessor<I, O, PI, CPO, FEO, CLEI>
 }
 
-internal class FirstPipelineElement<O, PO, LEI>(private val layer: CreatorLayer<O>,
+internal class FirstPipelineElement<O, PO, LEI>(private val layer: CreatorLayerWithFlowControl<O>,
                                                 override val nextElement: PipelineElementWithPredecessor<O, *, Unit, PO, O, LEI>) :
 		PipelineElementWithSuccessor<Unit, O, Unit, PO, O, LEI>
 {
@@ -45,14 +45,14 @@ internal class FirstPipelineElement<O, PO, LEI>(private val layer: CreatorLayer<
 		nextElement.previousElement = this
 	}
 
-	override fun transform(input: Unit) = layer.transform(input).fold({ output -> nextElement.transform(output) },
-																	  { Output.NoValue() })
+	override fun transform(input: Unit) = layer.transformWithFlowControl(input).fold({ output -> nextElement.transform(output) },
+																	                 { Output.NoValue() })
 
 	override fun <CPO, CLEI> copyBackwardsWithNewPO(nextElement: PipelineElementWithPredecessor<O, *, Unit, CPO, O, CLEI>) =
 			FirstPipelineElement(layer, nextElement)
 }
 
-internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: TransitiveLayer<I, O>,
+internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: TransitiveLayerWithFlowControl<I, O>,
                                                              override val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FEO, LEI>) :
 		PipelineElementWithPredecessor<I, O, PI, PO, FEO, LEI>, PipelineElementWithSuccessor<I, O, PI, PO, FEO, LEI>
 {
@@ -68,8 +68,8 @@ internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: 
 		nextElement.previousElement = this
 	}
 
-	override fun transform(input: I) = layer.transform(input).fold({ output -> nextElement.transform(output) },
-																	  { Output.NoValue() })
+	override fun transform(input: I) = layer.transformWithFlowControl(input).fold({ output -> nextElement.transform(output) },
+																	              { Output.NoValue() })
 
 	override fun <CPI, CFEO> copyWithNewPI() = MiddlePipelineElement(layer, nextElement.copyWithNewPI<CPI, CFEO>())
 
@@ -77,7 +77,7 @@ internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: 
 			MiddlePipelineElement(layer, nextElement)
 }
 
-internal class LastPipelineElement<I, PI, FEO>(private val layer: ConsumerLayer<I>) :
+internal class LastPipelineElement<I, PI, FEO>(private val layer: ConsumerLayerWithFlowControl<I>) :
 		PipelineElementWithPredecessor<I, Unit, PI, Unit, FEO, I>
 {
 	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, I, PI, Unit, FEO, I>>()
@@ -87,7 +87,7 @@ internal class LastPipelineElement<I, PI, FEO>(private val layer: ConsumerLayer<
 	override val lastElement: LastPipelineElement<I, PI, FEO>
 		get() = this
 
-	override fun transform(input: I) = layer.transform(input)
+	override fun transform(input: I) = layer.transformWithFlowControl(input)
 
 	override fun <CPI, CFEO> copyWithNewPI() = LastPipelineElement<I, CPI, CFEO>(layer)
 }
