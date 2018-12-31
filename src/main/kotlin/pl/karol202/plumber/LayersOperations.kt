@@ -43,33 +43,33 @@ interface ConvertibleToRightClosedBiPipeline<I, LEI>
 }
 
 @PublicApi
-operator fun <O, NO, FEO> ConvertibleToLeftClosedUniPipeline<O, FEO>.plus(right: ConvertibleToOpenUniPipeline<O, NO>):
-		LeftClosedUniPipeline<NO, FEO> = toLeftClosedUniPipeline() + right.toOpenUniPipeline()
+operator fun <O, NO, FEO> ConvertibleToLeftClosedUniPipeline<O, FEO>.plus(uniPipeline: ConvertibleToOpenUniPipeline<O, NO>):
+		LeftClosedUniPipeline<NO, FEO> = toLeftClosedUniPipeline() + uniPipeline.toOpenUniPipeline()
 
 @PublicApi
-operator fun <O, NO> ConvertibleToLeftClosedUniPipeline<O, *>.plus(right: ConvertibleToRightClosedUniPipeline<O, NO>):
-		ClosedUniPipeline = toLeftClosedUniPipeline() + right.toRightClosedUniPipeline()
+operator fun <O, NO> ConvertibleToLeftClosedUniPipeline<O, *>.plus(uniPipeline: ConvertibleToRightClosedUniPipeline<O, NO>):
+		ClosedUniPipeline = toLeftClosedUniPipeline() + uniPipeline.toRightClosedUniPipeline()
 
 @PublicApi
-operator fun <I, O, NO> ConvertibleToOpenUniPipeline<I, O>.plus(right: ConvertibleToOpenUniPipeline<O, NO>):
-		OpenUniPipeline<I, NO> = toOpenUniPipeline() + right.toOpenUniPipeline()
+operator fun <I, O, NO> ConvertibleToOpenUniPipeline<I, O>.plus(uniPipeline: ConvertibleToOpenUniPipeline<O, NO>):
+		OpenUniPipeline<I, NO> = toOpenUniPipeline() + uniPipeline.toOpenUniPipeline()
 
 @PublicApi
-operator fun <I, O, LEI> ConvertibleToOpenUniPipeline<I, O>.plus(right: ConvertibleToRightClosedUniPipeline<O, LEI>):
-		RightClosedUniPipeline<I, LEI> = toOpenUniPipeline() + right.toRightClosedUniPipeline()
+operator fun <I, O, LEI> ConvertibleToOpenUniPipeline<I, O>.plus(uniPipeline: ConvertibleToRightClosedUniPipeline<O, LEI>):
+		RightClosedUniPipeline<I, LEI> = toOpenUniPipeline() + uniPipeline.toRightClosedUniPipeline()
 
 @PublicApi
-operator fun <O, NO, FEO> ConvertibleToLeftClosedBiPipeline<O, FEO>.plus(right: ConvertibleToOpenBiPipeline<O, NO>):
-		LeftClosedBiPipeline<NO, FEO> = toLeftClosedBiPipeline() + right.toOpenBiPipeline()
+operator fun <O, NO, FEO> ConvertibleToLeftClosedBiPipeline<O, FEO>.plus(biPipeline: ConvertibleToOpenBiPipeline<O, NO>):
+		LeftClosedBiPipeline<NO, FEO> = toLeftClosedBiPipeline() + biPipeline.toOpenBiPipeline()
 
 @PublicApi
-operator fun <O, NO> ConvertibleToLeftClosedBiPipeline<O, *>.plus(right: ConvertibleToRightClosedBiPipeline<O, NO>):
-		ClosedBiPipeline = toLeftClosedBiPipeline() + right.toRightClosedBiPipeline()
+operator fun <O, NO> ConvertibleToLeftClosedBiPipeline<O, *>.plus(biPipeline: ConvertibleToRightClosedBiPipeline<O, NO>):
+		ClosedBiPipeline = toLeftClosedBiPipeline() + biPipeline.toRightClosedBiPipeline()
 
 @PublicApi
-operator fun <I, O, NO> ConvertibleToOpenBiPipeline<I, O>.plus(right: ConvertibleToOpenBiPipeline<O, NO>):
-		OpenBiPipeline<I, NO> = toOpenBiPipeline() + right.toOpenBiPipeline()
+operator fun <I, O, NO> ConvertibleToOpenBiPipeline<I, O>.plus(biPipeline: ConvertibleToOpenBiPipeline<O, NO>):
+		OpenBiPipeline<I, NO> = toOpenBiPipeline() + biPipeline.toOpenBiPipeline()
 
 @PublicApi
-operator fun <I, O, LEI> ConvertibleToOpenBiPipeline<I, O>.plus(right: ConvertibleToRightClosedBiPipeline<O, LEI>):
-		RightClosedBiPipeline<I, LEI> = toOpenBiPipeline() + right.toRightClosedBiPipeline()
+operator fun <I, O, LEI> ConvertibleToOpenBiPipeline<I, O>.plus(biPipeline: ConvertibleToRightClosedBiPipeline<O, LEI>):
+		RightClosedBiPipeline<I, LEI> = toOpenBiPipeline() + biPipeline.toRightClosedBiPipeline()
