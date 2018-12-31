@@ -10,6 +10,9 @@ sealed class Output<O>
 	class NoValue<O> : Output<O>()
 
 	@PublicApi
+	fun getOrNull(): O? = (this as? Value<O>)?.value
+
+	@PublicApi
 	fun <T> fold(ifValue: (O) -> T, ifNoValue: () -> T): T = when(this)
 	{
 		is Value<O> -> ifValue(value)
