@@ -3,8 +3,8 @@ package pl.karol202.plumber
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-open class LateVal<T>(val nullException: Exception,
-					  val assignedException: Exception) : ReadWriteProperty<Any?, T>
+open class LateVal<T>(private val nullException: Exception,
+					  private val assignedException: Exception) : ReadWriteProperty<Any?, T>
 {
 	private var variable: T? = null
 

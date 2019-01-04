@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.3.11'
+    id 'kotlin-multiplatform' version '1.3.11'
 }
 
 group 'pl.karol202.plumber'
@@ -9,14 +9,43 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-}
+kotlin {
+    targets {
+        fromPreset(presets.jvm, "jvm")
+        fromPreset(presets.js, "js")
+        fromPreset(presets.mingwX64, "windows")
+        fromPreset(presets.linuxX64, "linux")
+        fromPreset(presets.macosX64, "macos")
+        fromPreset(presets.iosX64, "iosX64")
+        fromPreset(presets.iosArm32, "iosArm32")
+        fromPreset(presets.iosArm64, "iosArm64")
+    }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
+    sourceSets {
+        commonMain.dependencies {
+            api 'org.jetbrains.kotlin:kotlin-stdlib-common'
+        }
+        
+        commonTest.dependencies {
+            implementation 'org.jetbrains.kotlin:kotlin-test-common'
+            implementation 'org.jetbrains.kotlin:kotlin-test-annotations-common'
+        }
 
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+        jvmMain.dependencies {
+            api 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+        }
+        
+        jvmTest.dependencies {
+            implementation 'org.jetbrains.kotlin:kotlin-test'
+            implementation 'org.jetbrains.kotlin:kotlin-test-junit'
+        }
+
+        jsMain.dependencies {
+            api 'org.jetbrains.kotlin:kotlin-stdlib-js'
+        }
+
+        jsTest.dependencies {
+            implementation 'org.jetbrains.kotlin:kotlin-test-js'
+        }
+    }
 }
