@@ -42,9 +42,6 @@ class OpenUniPipeline<I, O> internal constructor(override val firstElement: Star
 		})
 	}
 
-	/**
-	 * Following operator methods join two pipelines into a new one
-	 */
 	@PublicApi
 	operator fun <NO> plus(rightPipeline: OpenUniPipeline<O, NO>): OpenUniPipeline<I, NO>
 	{
@@ -152,3 +149,7 @@ class RightClosedUniPipeline<I, LEI> internal constructor(override val firstElem
 class ClosedUniPipeline internal constructor(override val firstElement: FirstPipelineElement<*, Unit, *>,
                                              override val lastElement: LastPipelineElement<*, Unit, *>) :
 		UniPipeline<Unit, Unit>()
+{
+	@PublicApi
+	fun transform(): Output<Unit> = transform(Unit)
+}

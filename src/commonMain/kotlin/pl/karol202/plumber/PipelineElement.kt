@@ -56,7 +56,7 @@ internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: 
                                                              override val nextElement: PipelineElementWithPredecessor<O, *, PI, PO, FEO, LEI>) :
 		PipelineElementWithPredecessor<I, O, PI, PO, FEO, LEI>, PipelineElementWithSuccessor<I, O, PI, PO, FEO, LEI>
 {
-	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, I, PI, PO, FEO, LEI>>()
+	override var previousElement by latePreviousElement<PipelineElementWithSuccessor<*, I, PI, PO, FEO, LEI>>()
 
 	override val firstElement: PipelineElement<PI, FEO, PI, PO, FEO, LEI>
 		get() = previousElement.firstElement
@@ -74,13 +74,13 @@ internal class MiddlePipelineElement<I, O, PI, PO, FEO, LEI>(private val layer: 
 	override fun <CPI, CFEO> copyWithNewPI() = MiddlePipelineElement(layer, nextElement.copyWithNewPI<CPI, CFEO>())
 
 	override fun <CPO, CLEI> copyBackwardsWithNewPO(nextElement: PipelineElementWithPredecessor<O, *, PI, CPO, FEO, CLEI>) =
-			MiddlePipelineElement(layer, nextElement)
+			MiddlePipelineElement(layer, nextElement).also { previousElement.copyBackwardsWithNewPO(it) }
 }
 
 internal class LastPipelineElement<I, PI, FEO>(private val layer: ConsumerLayerWithFlowControl<I>) :
 		PipelineElementWithPredecessor<I, Unit, PI, Unit, FEO, I>
 {
-	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, I, PI, Unit, FEO, I>>()
+	override var previousElement by latePreviousElement<PipelineElementWithSuccessor<*, I, PI, Unit, FEO, I>>()
 
 	override val firstElement: PipelineElement<PI, FEO, PI, Unit, FEO, I>
 		get() = previousElement.firstElement
@@ -113,7 +113,7 @@ internal class StartPipelineTerminator<PI, PO, LEI>(override val nextElement: Pi
 
 internal class EndPipelineTerminator<PI, PO, FEO> : PipelineElementWithPredecessor<PO, PO, PI, PO, FEO, PO>
 {
-	override var previousElement by LatePreviousElement<PipelineElementWithSuccessor<*, PO, PI, PO, FEO, PO>>()
+	override var previousElement by latePreviousElement<PipelineElementWithSuccessor<*, PO, PI, PO, FEO, PO>>()
 
 	override val firstElement: PipelineElement<PI, FEO, PI, PO, FEO, PO>
 		get() = previousElement.firstElement

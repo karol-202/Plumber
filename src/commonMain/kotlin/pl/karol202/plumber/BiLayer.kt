@@ -97,6 +97,14 @@ interface BiLayer<I, O> : BiLayerWithFlowControl<I, O>
 
 @PublicApi
 interface TransitiveBiLayer<I, O> : BiLayer<I, O>, TransitiveBiLayerWithFlowControl<I, O>
+{
+	@PublicApi
+	override fun invert(): TransitiveBiLayer<O, I> = object : TransitiveBiLayer<O, I> {
+		override fun transform(input: O) = this@TransitiveBiLayer.transformBack(input)
+
+		override fun transformBack(input: I) = this@TransitiveBiLayer.transform(input)
+	}
+}
 
 @PublicApi
 interface TerminalBiLayer<T> : BiLayer<T, Unit>, TerminalBiLayerWithFlowControl<T>

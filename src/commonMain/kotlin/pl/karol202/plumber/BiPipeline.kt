@@ -196,5 +196,11 @@ class ClosedBiPipeline internal constructor(override val forwardUniPipeline: Clo
 	}
 
 	@PublicApi
+	fun transform(): Output<Unit> = transform(Unit)
+
+	@PublicApi
+	fun transformBack(): Output<Unit> = transformBack(Unit)
+
+	@PublicApi
 	override fun invert() = fromUniPipelines(backwardUniPipeline, forwardUniPipeline)
 }
